@@ -192,6 +192,22 @@ body.menu-side #sidebar-menu { display:block; }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.7/dist/sweetalert2.min.css">
 
 <script>
+var $ = window.jQuery || window.$;
+
+$(document).ready(function() {
+    // Verificación inicial de autenticación - muestra estado en consola para debugging
+    const token = localStorage.getItem('api_token');
+    console.log("Estado de autenticación inicial:", token ? "Token presente" : "Sin token");
+    
+    // Establecer headers globales para todas las peticiones AJAX
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Accept': 'application/json'
+        }
+    });
+});
+
 let fieldCount = 0;
 let fields = [];
 let gridRows = 3;
@@ -897,22 +913,43 @@ $(function() {
             Swal.fire('Campos requeridos', 'Debes ingresar email y contraseña.', 'warning');
             return;
         }
+        
+        // Mostrar spinner de carga
+        Swal.fire({
+            title: 'Autenticando...',
+            text: 'Espere un momento',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
         $.ajax({
-            url: '/formbox/public/api/login',
+            url: getApiBase() + '/login',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ email, password }),
             success: function(response) {
                 localStorage.setItem('api_token', response.token);
-                Swal.fire('¡Listo!', 'Token guardado en localStorage.', 'success');
-                $('#apiLoginModal').modal('hide');
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Listo!',
+                    text: 'Token guardado en localStorage.',
+                    didClose: () => {
+                        $('#apiLoginModal').modal('hide');
+                        // Mostrar token en consola para debugging
+                        console.log("Token obtenido:", response.token);
+                    }
+                });
             },
             error: function(xhr) {
+                console.error("Error login API:", xhr);
                 Swal.fire('Error', 'Credenciales incorrectas o error de red.', 'error');
             }
         });
     });
-    // Guardar formulario
+    
+    // Guardar formulario - VERSIÓN CORREGIDA
     $(document).on('click', '#btn-save-form', function() {
         const formName = $('#form-name').val().trim();
         const tableName = $('#form-table-name').val().trim();
@@ -920,6 +957,25 @@ $(function() {
             Swal.fire('Campos requeridos', 'Debes ingresar el nombre del formulario y de la tabla.', 'warning');
             return;
         }
+        
+        // Verificar si hay token
+        const token = localStorage.getItem('api_token');
+        if (!token) {
+            Swal.fire({
+                title: 'No has iniciado sesión',
+                text: 'Debes iniciar sesión en la API primero',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Iniciar sesión',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#apiLoginModal').modal('show');
+                }
+            });
+            return;
+        }
+        
         // Generar los campos con name válido
         const campos = fields.map(f => ({
             name: f.name_html || sanitizeName(f.label || ''),
@@ -927,6 +983,7 @@ $(function() {
             required: !!f.required,
             label: f.label || ''
         }));
+        
         // Validar que todos los campos tengan name único
         const names = campos.map(c => c.name);
         const hasDuplicates = names.length !== new Set(names).size;
@@ -934,9 +991,20 @@ $(function() {
             Swal.fire('Error', 'Hay campos con nombres repetidos. Modifica los nombres para que sean únicos.', 'error');
             return;
         }
+        
+        // Mostrar spinner de carga
+        Swal.fire({
+            title: 'Guardando formulario...',
+            text: 'Espere un momento',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
         // Enviar AJAX
         $.ajax({
-            url: '/formbox/public/api/forms',
+            url: getApiBase() + '/forms',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -946,25 +1014,73 @@ $(function() {
             }),
             headers: {
                 'Accept': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('api_token'),
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                'Authorization': 'Bearer ' + token
             },
             success: function(response) {
                 Swal.fire('¡Guardado!', 'El formulario se guardó correctamente.', 'success');
+                console.log("Formulario guardado:", response);
             },
             error: function(xhr) {
+                console.error("Error guardar formulario:", xhr);
+                
                 let msg = 'Error al guardar el formulario.';
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                if (xhr.status === 401) {
+                    msg = 'Error de autorización. Tu sesión ha expirado.';
+                    localStorage.removeItem('api_token'); // Forzar eliminar token inválido
+                    Swal.fire({
+                        title: 'Sesión expirada',
+                        text: 'Tu sesión ha expirado. ¿Deseas iniciar sesión nuevamente?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Iniciar sesión',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#apiLoginModal').modal('show');
+                        }
+                    });
+                    return;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
                     msg = Object.values(xhr.responseJSON.errors).flat().join('<br>');
                 }
+                
                 Swal.fire('Error', msg, 'error');
             }
         });
     });
-});
+}
+
+function getApiBase() {
+    // Si la app está bajo /formbox/public, usa esa base
+    let path = window.location.pathname;
+    if (path.includes('/formbox/public/')) return '/formbox/public/api';
+    if (path.includes('/formbox/')) return '/formbox/api';
+    return '/api';
+}
 
 function generateColId() {
     return 'col_' + Math.random().toString(36).substr(2, 9);
+}
+</script>
+
+<script>
+// Función global para obtener la base de la API
+function getApiBase() {
+    // Si la app está bajo /formbox/public, usa esa base
+    let path = window.location.pathname;
+    if (path.includes('/formbox/public/')) return '/formbox/public/api';
+    if (path.includes('/formbox/')) return '/formbox/api';
+    return '/api';
+}
+
+// Recupera y valida el token almacenado
+function getStoredToken() {
+    return localStorage.getItem('api_token');
+}
+
+// Función para refrescar la página y limpiar formulario (útil post-guardado)
+function refreshPage() {
+    window.location.reload();
 }
 </script>
 </body>
