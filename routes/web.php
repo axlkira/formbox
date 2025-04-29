@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DbSetupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,6 +15,9 @@ Route::get('/dashboard', function () {
 Route::get('/builder', function () {
     return view('builder');
 });
+
+Route::get('/db-setup', [DbSetupController::class, 'showForm'])->name('db.setup');
+Route::post('/db-setup', [DbSetupController::class, 'testConnection'])->name('db.setup.test');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
