@@ -81,7 +81,12 @@
             box-shadow: 0 4px 24px #2563eb0a;
         }
         .elementor-section.selected { box-shadow: 0 0 0 3px #60a5fa; }
-        .elementor-section .btn-remove-section { position: absolute; top: 8px; right: 8px; z-index: 10; }
+        .elementor-section .btn-remove-section {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
         .elementor-column {
             min-height: 70px;
             border: 1.5px dashed #60a5fa;
@@ -95,7 +100,12 @@
             margin-right: 8px;
             padding: 12px 6px 18px 6px;
         }
-        .elementor-column .btn-remove-column { position: absolute; top: 8px; right: 8px; z-index: 10; }
+        .elementor-column .btn-remove-column {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
         .elementor-widget {
             background: #f1f5f9;
             border: 1.5px solid #a5b4fc;
@@ -166,6 +176,17 @@
             background: #dbeafe !important;
             min-height: 40px;
             border-radius: 8px;
+            margin-bottom: 14px;
+        }
+        .highlight-drop {
+            background-color: #e0f2fe !important;
+            border: 2px dashed #0ea5e9 !important;
+            transition: all 0.2s ease;
+        }
+        .sortable-widgets {
+            min-height: 30px;
+            padding: 5px;
+            transition: all 0.2s ease;
         }
         @media (max-width: 991px) {
             #sidebar-menu { width:100vw; border-radius:0; }
@@ -230,117 +251,27 @@
     <script>
     window.sections = window.sections || [];
     window.widgetTypes = window.widgetTypes || {
-        text: 'Campo de texto', textarea: 'Área de texto', select: 'Selecciona una opción', switch: 'Interruptor', checkbox: 'Casilla', button: 'Botón', date: 'Fecha', file: 'Archivo', email: 'Email', number: 'Número', password: 'Password', color: 'Color', range: 'Rango', radio: 'Radio', static: 'Texto/HTML'
+        text: 'Campo de texto', textarea: 'Área de texto', select: 'Selecciona una opción', switch: 'Interruptor', checkbox: 'Casilla', button: 'Botón', date: 'Fecha', file: 'Archivo', email: 'Email', number: 'Número', password: 'Password', color: 'Color', range: 'Rango', radio: 'Radio', static: 'Texto/HTML', card: 'Card'
     };
     window.widgetIcons = {
-        text: 'bi-fonts', textarea: 'bi-card-text', select: 'bi-list', switch: 'bi-toggle-on', checkbox: 'bi-check2-square', button: 'bi-box-arrow-in-right', date: 'bi-calendar', file: 'bi-paperclip', email: 'bi-envelope', number: 'bi-123', password: 'bi-key', color: 'bi-palette', range: 'bi-sliders', radio: 'bi-record-circle', static: 'bi-type'
+        text: 'bi-fonts', textarea: 'bi-card-text', select: 'bi-list', switch: 'bi-toggle-on', checkbox: 'bi-check2-square', button: 'bi-box-arrow-in-right', date: 'bi-calendar', file: 'bi-paperclip', email: 'bi-envelope', number: 'bi-123', password: 'bi-key', color: 'bi-palette', range: 'bi-sliders', radio: 'bi-record-circle', static: 'bi-type', card: 'bi-card-image'
     };
 
-    function renderSections() {
-        const $list = $('#sections-list');
-        $list.empty();
-        if (window.sections.length === 0) {
-            $('#empty-builder').show();
-        } else {
-            $('#empty-builder').hide();
-            window.sections.forEach((section, sidx) => {
-                let sectionHtml = `<div class='elementor-section' data-sidx='${sidx}'>`;
-                sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-section' title='Eliminar sección' data-sidx='${sidx}'><i class='bi bi-x'></i></button>`;
-                sectionHtml += `<div class='row'>`;
-                section.columns.forEach((col, cidx) => {
-                    sectionHtml += `<div class='col elementor-column' style='width:${100/section.columns.length}%;display:inline-block;vertical-align:top;' data-sidx='${sidx}' data-cidx='${cidx}'>`;
-                    sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-column' title='Eliminar columna' data-sidx='${sidx}' data-cidx='${cidx}'><i class='bi bi-x'></i></button>`;
-                    sectionHtml += `<div class='widgets-list sortable-widgets'>`;
-                    col.widgets.forEach((widget, widx) => {
-                        sectionHtml += `<div class='elementor-widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'>`;
-                        sectionHtml += `<button class='btn btn-remove-widget' title='Eliminar widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'><i class='bi bi-x'></i></button>`;
-                        sectionHtml += `<div class='widget-preview'>`;
-                        if(widget.type === 'text') {
-                            sectionHtml += `<label><i class='bi bi-fonts'></i> Texto</label><input type='text' class='form-control' disabled placeholder='Campo de texto'>`;
-                        } else if(widget.type === 'textarea') {
-                            sectionHtml += `<label><i class='bi bi-card-text'></i> Área</label><textarea class='form-control' rows='2' disabled placeholder='Área de texto'></textarea>`;
-                        } else if(widget.type === 'select') {
-                            sectionHtml += `<label><i class='bi bi-list'></i> Selección</label><select class='form-select' disabled><option>Opción 1</option><option>Opción 2</option></select>`;
-                        } else if(widget.type === 'checkbox') {
-                            sectionHtml += `<label><i class='bi bi-check2-square'></i> Casilla</label><input type='checkbox' class='form-check-input' disabled>`;
-                        } else if(widget.type === 'switch') {
-                            sectionHtml += `<label><i class='bi bi-toggle-on'></i> Switch</label><input type='checkbox' class='form-check-input' disabled style='accent-color:#2563eb;'>`;
-                        } else if(widget.type === 'button') {
-                            sectionHtml += `<button class='btn btn-primary btn-sm' disabled><i class='bi bi-box-arrow-in-right'></i> Botón</button>`;
-                        } else if(widget.type === 'date') {
-                            sectionHtml += `<label><i class='bi bi-calendar'></i> Fecha</label><input type='date' class='form-control' disabled>`;
-                        } else if(widget.type === 'file') {
-                            sectionHtml += `<label><i class='bi bi-paperclip'></i> Archivo</label><input type='file' class='form-control' disabled>`;
-                        } else if(widget.type === 'email') {
-                            sectionHtml += `<label><i class='bi bi-envelope'></i> Email</label><input type='email' class='form-control' disabled placeholder='Email'>`;
-                        } else if(widget.type === 'number') {
-                            sectionHtml += `<label><i class='bi bi-123'></i> Número</label><input type='number' class='form-control' disabled placeholder='Número'>`;
-                        } else if(widget.type === 'password') {
-                            sectionHtml += `<label><i class='bi bi-key'></i> Password</label><input type='password' class='form-control' disabled placeholder='Password'>`;
-                        } else if(widget.type === 'color') {
-                            sectionHtml += `<label><i class='bi bi-palette'></i> Color</label><input type='color' class='form-control form-control-color' disabled>`;
-                        } else if(widget.type === 'range') {
-                            sectionHtml += `<label><i class='bi bi-sliders'></i> Rango</label><input type='range' class='form-range' disabled>`;
-                        } else if(widget.type === 'radio') {
-                            sectionHtml += `<label><i class='bi bi-record-circle'></i> Radio</label><input type='radio' class='form-check-input' disabled>`;
-                        } else if(widget.type === 'static') {
-                            sectionHtml += `<span class='text-secondary'><i class='bi bi-type'></i> Texto/HTML estático</span>`;
-                        } else {
-                            sectionHtml += `<span><i class='bi ${window.widgetIcons[widget.type] || 'bi-box'}'></i> ${window.widgetTypes[widget.type] || widget.type}</span>`;
-                        }
-                        sectionHtml += `</div>`;
-                        sectionHtml += `</div>`;
-                    });
-                    sectionHtml += `</div></div>`;
-                });
-                sectionHtml += `</div>`;
-                sectionHtml += `<div class='mt-2'><button class='btn btn-outline-primary btn-sm btn-add-column' data-sidx='${sidx}'><i class='bi bi-plus-square'></i> Agregar columna</button></div>`;
-                sectionHtml += `</div>`;
-                $list.append(sectionHtml);
-            });
-        }
-        // Habilitar drag & drop widgets
-        $('.sortable-widgets').sortable({
-            connectWith: '.sortable-widgets',
-            placeholder: 'sortable-placeholder',
-            items: '> .elementor-widget',
-            tolerance: 'pointer',
-            revert: 120,
-            scroll: true,
-            start: function(e, ui) { ui.helper.css('z-index', 2000); },
-            update: function(event, ui) {
-                let newSections = [];
-                $('#sections-list .elementor-section').each(function() {
-                    let sidx = $(this).data('sidx');
-                    let section = window.sections[sidx];
-                    let newSection = { columns: [] };
-                    $(this).find('.elementor-column').each(function() {
-                        let cidx = $(this).data('cidx');
-                        let col = section.columns[cidx];
-                        let newCol = { widgets: [] };
-                        $(this).find('.elementor-widget').each(function() {
-                            let widx = $(this).data('widx');
-                            let widget = col.widgets[widx];
-                            newCol.widgets.push(widget);
-                        });
-                        newSection.columns.push(newCol);
-                    });
-                    newSections.push(newSection);
-                });
-                window.sections = newSections;
-            }
-        }).disableSelection();
-    }
-
-    function renderWidgetModal() {
-        const $list = $('#widget-modal-list');
-        $list.empty();
-        Object.keys(window.widgetTypes).forEach(type => {
-            $list.append(`<div class="col-6 mb-3"><button class="btn btn-outline-primary w-100 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button></div>`);
-        });
-    }
+    let lastDraggedWidget = null;
 
     $(document).ready(function() {
+        renderSections();
+        
+        $(document).on('mousedown', '.elementor-widget', function(e) {
+            lastDraggedWidget = {
+                sidx: $(this).data('sidx'),
+                cidx: $(this).data('cidx'),
+                widx: $(this).data('widx'),
+                type: window.sections[$(this).data('sidx')]?.columns[$(this).data('cidx')]?.widgets[$(this).data('widx')]?.type || 'text'
+            };
+            console.log('Widget arrastrado:', lastDraggedWidget);
+        });
+        
         $(document).off('click', '#add-section').on('click', '#add-section', function() {
             Swal.fire({
                 title: '¿Cuántas columnas quieres en esta fila?',
@@ -380,8 +311,9 @@
             if (window.sections[sidx].columns.length === 0) window.sections.splice(sidx, 1);
             renderSections();
         });
-        $(document).off('click', '.btn-remove-widget').on('click', '.btn-remove-widget', function(e) {
+        $(document).off('click', '.btn-remove-widget').on('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             const sidx = $(this).data('sidx');
             const cidx = $(this).data('cidx');
             const widx = $(this).data('widx');
@@ -436,8 +368,274 @@
                 $('#properties-panel').removeClass('active');
             }
         });
-        renderSections();
     });
+    
+    function renderSections() {
+        const $list = $('#sections-list');
+        $list.empty();
+        if (window.sections.length === 0) {
+            $('#empty-builder').show();
+        } else {
+            $('#empty-builder').hide();
+            window.sections.forEach((section, sidx) => {
+                let sectionHtml = `<div class='elementor-section' data-sidx='${sidx}'>`;
+                sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-section' title='Eliminar sección' data-sidx='${sidx}'><i class='bi bi-x'></i></button>`;
+                sectionHtml += `<div class='row'>`;
+                section.columns.forEach((col, cidx) => {
+                    sectionHtml += `<div class='col elementor-column' style='width:${100/section.columns.length}%;display:inline-block;vertical-align:top;' data-sidx='${sidx}' data-cidx='${cidx}'>`;
+                    sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-column' title='Eliminar columna' data-sidx='${sidx}' data-cidx='${cidx}'><i class='bi bi-x'></i></button>`;
+                    sectionHtml += `<div class='widgets-list sortable-widgets' data-sidx='${sidx}' data-cidx='${cidx}'>`;
+                    col.widgets.forEach((widget, widx) => {
+                        sectionHtml += `<div class='elementor-widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'>`;
+                        sectionHtml += `<button class='btn btn-remove-widget' title='Eliminar widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'><i class='bi bi-x'></i></button>`;
+                        sectionHtml += `<div class='widget-preview'>`;
+                        if(widget.type === 'text') {
+                            sectionHtml += `<label><i class='bi bi-fonts'></i> Texto</label><input type='text' class='form-control' disabled placeholder='Campo de texto'>`;
+                        } else if(widget.type === 'textarea') {
+                            sectionHtml += `<label><i class='bi bi-card-text'></i> Área</label><textarea class='form-control' rows='2' disabled placeholder='Área de texto'></textarea>`;
+                        } else if(widget.type === 'select') {
+                            sectionHtml += `<label><i class='bi bi-list'></i> Selección</label><select class='form-select' disabled><option>Opción 1</option><option>Opción 2</option></select>`;
+                        } else if(widget.type === 'checkbox') {
+                            sectionHtml += `<label><i class='bi bi-check2-square'></i> Casilla</label><input type='checkbox' class='form-check-input' disabled>`;
+                        } else if(widget.type === 'switch') {
+                            sectionHtml += `<label><i class='bi bi-toggle-on'></i> Switch</label><input type='checkbox' class='form-check-input' disabled style='accent-color:#2563eb;'>`;
+                        } else if(widget.type === 'button') {
+                            sectionHtml += `<button class='btn btn-primary btn-sm' disabled><i class='bi bi-box-arrow-in-right'></i> Botón</button>`;
+                        } else if(widget.type === 'date') {
+                            sectionHtml += `<label><i class='bi bi-calendar'></i> Fecha</label><input type='date' class='form-control' disabled>`;
+                        } else if(widget.type === 'file') {
+                            sectionHtml += `<label><i class='bi bi-paperclip'></i> Archivo</label><input type='file' class='form-control' disabled>`;
+                        } else if(widget.type === 'email') {
+                            sectionHtml += `<label><i class='bi bi-envelope'></i> Email</label><input type='email' class='form-control' disabled placeholder='Email'>`;
+                        } else if(widget.type === 'number') {
+                            sectionHtml += `<label><i class='bi bi-123'></i> Número</label><input type='number' class='form-control' disabled placeholder='Número'>`;
+                        } else if(widget.type === 'password') {
+                            sectionHtml += `<label><i class='bi bi-key'></i> Password</label><input type='password' class='form-control' disabled placeholder='Password'>`;
+                        } else if(widget.type === 'color') {
+                            sectionHtml += `<label><i class='bi bi-palette'></i> Color</label><input type='color' class='form-control form-control-color' disabled>`;
+                        } else if(widget.type === 'range') {
+                            sectionHtml += `<label><i class='bi bi-sliders'></i> Rango</label><input type='range' class='form-range' disabled>`;
+                        } else if(widget.type === 'radio') {
+                            sectionHtml += `<label><i class='bi bi-record-circle'></i> Radio</label><input type='radio' class='form-check-input' disabled>`;
+                        } else if(widget.type === 'static') {
+                            sectionHtml += `<span class='text-secondary'><i class='bi bi-type'></i> Texto/HTML estático</span>`;
+                        } else if(widget.type === 'card') {
+                            sectionHtml += `<div class='card' style='width:100%;background:#fff;border:1px solid #c7d2fe;'><div class='card-body'><h5 class='card-title'><i class='bi bi-card-image'></i> Card</h5><p class='card-text'>Contenido de ejemplo</p></div></div>`;
+                        } else {
+                            sectionHtml += `<span><i class='bi ${window.widgetIcons[widget.type] || 'bi-box'}'></i> ${window.widgetTypes[widget.type] || widget.type}</span>`;
+                        }
+                        sectionHtml += `</div>`;
+                        sectionHtml += `</div>`;
+                    });
+                    sectionHtml += `</div></div>`;
+                });
+                sectionHtml += `</div>`;
+                sectionHtml += `<div class='mt-2'><button class='btn btn-outline-primary btn-sm btn-add-column' data-sidx='${sidx}'><i class='bi bi-plus-square'></i> Agregar columna</button></div>`;
+                sectionHtml += `</div>`;
+                $list.append(sectionHtml);
+            });
+        }
+        
+        // Nueva implementación de drag & drop
+        initDragAndDrop();
+    }
+
+    function sincronizarModeloDeDatos() {
+        console.log('Sincronizando datos del modelo...');
+        
+        // Crear nueva estructura de datos basada en el DOM actual
+        let newSections = [];
+        
+        $('.elementor-section').each(function(sidx) {
+            let newSection = { columns: [] };
+            
+            $(this).find('.elementor-column').each(function(cidx) {
+                let newColumn = { widgets: [] };
+                
+                $(this).find('.elementor-widget').each(function(widx) {
+                    // Obtener datos del widget original
+                    let originalSidx = $(this).attr('data-sidx');
+                    let originalCidx = $(this).attr('data-cidx');
+                    let originalWidx = $(this).attr('data-widx');
+                    
+                    try {
+                        // Si existe en el modelo original, copiarlo
+                        if (window.sections[originalSidx] && 
+                            window.sections[originalSidx].columns[originalCidx] && 
+                            window.sections[originalSidx].columns[originalCidx].widgets[originalWidx]) {
+                            let widget = window.sections[originalSidx].columns[originalCidx].widgets[originalWidx];
+                            newColumn.widgets.push({...widget});
+                        } else if (lastDraggedWidget) {
+                            newColumn.widgets.push({ type: lastDraggedWidget.type });
+                        } else {
+                            // Intentar buscar por contenido si los índices no coinciden
+                            let foundWidget = false;
+                            for (let s = 0; s < window.sections.length; s++) {
+                                for (let c = 0; c < window.sections[s].columns.length; c++) {
+                                    for (let w = 0; w < window.sections[s].columns[c].widgets.length; w++) {
+                                        let currentWidget = window.sections[s].columns[c].widgets[w];
+                                        let currentHTML = $(this).html();
+                                        if (currentHTML.indexOf(currentWidget.type) > -1) {
+                                            newColumn.widgets.push({...currentWidget});
+                                            foundWidget = true;
+                                            break;
+                                        }
+                                    }
+                                    if (foundWidget) break;
+                                }
+                                if (foundWidget) break;
+                            }
+                            
+                            // Si no encontramos el widget, determinar tipo por el contenido HTML
+                            if (!foundWidget) {
+                                let type = 'text';
+                                if ($(this).find('.bi-card-text').length > 0) type = 'textarea';
+                                if ($(this).find('.bi-list').length > 0) type = 'select';
+                                if ($(this).find('.bi-check2-square').length > 0) type = 'checkbox';
+                                if ($(this).find('.bi-toggle-on').length > 0) type = 'switch';
+                                if ($(this).find('.bi-box-arrow-in-right').length > 0) type = 'button';
+                                if ($(this).find('.bi-calendar').length > 0) type = 'date';
+                                if ($(this).find('.bi-paperclip').length > 0) type = 'file';
+                                if ($(this).find('.bi-envelope').length > 0) type = 'email';
+                                if ($(this).find('.bi-123').length > 0) type = 'number';
+                                if ($(this).find('.bi-key').length > 0) type = 'password';
+                                if ($(this).find('.bi-palette').length > 0) type = 'color';
+                                if ($(this).find('.bi-sliders').length > 0) type = 'range';
+                                if ($(this).find('.bi-record-circle').length > 0) type = 'radio';
+                                if ($(this).find('.bi-type').length > 0) type = 'static';
+                                if ($(this).find('.card-title').length > 0) type = 'card';
+                                
+                                newColumn.widgets.push({ type });
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error sincronizando widget:", error);
+                        // En caso de error, agregar un widget de texto como fallback
+                        newColumn.widgets.push({ type: 'text' });
+                    }
+                });
+                
+                newSection.columns.push(newColumn);
+            });
+            
+            newSections.push(newSection);
+        });
+        
+        // Reemplazar el modelo de datos actual
+        window.sections = newSections;
+        
+        // Actualizar atributos de datos en el DOM
+        actualizarIndices();
+
+        // Console debug to help identify issues
+        console.log('Modelo actualizado:', JSON.stringify(window.sections));
+        
+        // Resetear el último widget arrastrado
+        lastDraggedWidget = null;
+    }
+
+    function initDragAndDrop() {
+        console.log('Inicializando drag & drop...');
+        
+        // Destruir sortables previos
+        try {
+            $('.sortable-widgets').sortable('destroy');
+        } catch(e) {}
+        
+        // Inicializar sortable en todas las columnas
+        $('.sortable-widgets').sortable({
+            connectWith: '.sortable-widgets',
+            placeholder: 'sortable-placeholder',
+            items: '> .elementor-widget',
+            cursor: 'move',
+            opacity: 0.7,
+            revert: true,
+            tolerance: 'pointer',
+            zIndex: 9999,
+            scroll: true,
+            delay: 150,
+            distance: 5,
+            handle: '.widget-preview',
+            forceHelperSize: true, 
+            forcePlaceholderSize: true,
+            helper: function(event, ui) {
+                var $clone = $(ui).clone();
+                $clone.css('position', 'absolute');
+                return $clone;
+            },
+            start: function(e, ui) {
+                ui.placeholder.height(ui.item.height());
+                ui.helper.css('z-index', 9999);
+                $(this).sortable('refresh');
+                $('.sortable-widgets').sortable('refreshPositions');
+            },
+            over: function(e, ui) {
+                $(this).addClass('highlight-drop');
+            },
+            out: function(e, ui) {
+                $(this).removeClass('highlight-drop');
+            },
+            beforeStop: function(e, ui) {
+                // Evitar que se reinicialice durante el drag
+                e.stopPropagation();
+            },
+            receive: function(event, ui) {
+                console.log('Widget recibido en nueva columna');
+                $(this).removeClass('highlight-drop');
+            },
+            update: function(event, ui) {
+                console.log('Widget actualizado');
+                if(ui.sender) {
+                    console.log('Widget movido de otra columna');
+                } else {
+                    console.log('Widget reordenado en la misma columna');
+                }
+            },
+            stop: function(e, ui) {
+                $(this).removeClass('highlight-drop');
+                // Dar tiempo para que termine la animación
+                setTimeout(function() {
+                    // Actualizar el modelo de datos
+                    sincronizarModeloDeDatos();
+                }, 100);
+            }
+        }).disableSelection();
+    }
+
+    function renderWidgetModal() {
+        const $list = $('#widget-modal-list');
+        $list.empty();
+        Object.keys(window.widgetTypes).forEach(type => {
+            $list.append(`<div class="col-6 mb-3"><button class="btn btn-outline-primary w-100 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button></div>`);
+        });
+    }
+
+    function actualizarIndices() {
+        // Recorremos todas las columnas y widgets para actualizar sus índices en el DOM
+        $('.elementor-section').each(function(sidx) {
+            $(this).attr('data-sidx', sidx);
+            $(this).find('.btn-remove-section').attr('data-sidx', sidx);
+            $(this).find('.btn-add-column').attr('data-sidx', sidx);
+            
+            $(this).find('.elementor-column').each(function(cidx) {
+                $(this).attr('data-sidx', sidx);
+                $(this).attr('data-cidx', cidx);
+                $(this).find('.btn-remove-column').attr('data-sidx', sidx);
+                $(this).find('.btn-remove-column').attr('data-cidx', cidx);
+                $(this).find('.sortable-widgets').attr('data-sidx', sidx);
+                $(this).find('.sortable-widgets').attr('data-cidx', cidx);
+                
+                $(this).find('.elementor-widget').each(function(widx) {
+                    $(this).attr('data-sidx', sidx);
+                    $(this).attr('data-cidx', cidx);
+                    $(this).attr('data-widx', widx);
+                    $(this).find('.btn-remove-widget').attr('data-sidx', sidx);
+                    $(this).find('.btn-remove-widget').attr('data-cidx', cidx);
+                    $(this).find('.btn-remove-widget').attr('data-widx', widx);
+                });
+            });
+        });
+    }
     </script>
 </body>
 </html>
