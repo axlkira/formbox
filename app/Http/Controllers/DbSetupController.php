@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
+use App\Models\DbConnection;
 
 class DbSetupController extends Controller
 {
@@ -40,8 +41,18 @@ class DbSetupController extends Controller
             DB::purge('dynamic');
             config(['database.connections.dynamic' => $config]);
             DB::connection('dynamic')->getPdo();
-            // Opcional: guardar en sesión encriptado
-            Session::put('db_config', Crypt::encrypt($config));
+            // Guardar en la base de datos (encriptar contraseña)
+            DbConnection::updateOrCreate(
+                [
+                    'host' => $request->host,
+                    'port' => $request->port,
+                    'database' => $request->database,
+                    'username' => $request->username,
+                ],
+                [
+                    'password' => Crypt::encryptString($request->password ?? ''),
+                ]
+            );
             return redirect()->back()->with('success', '¡Conexión exitosa!');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['db' => 'Error de conexión: ' . $e->getMessage()])->withInput();
