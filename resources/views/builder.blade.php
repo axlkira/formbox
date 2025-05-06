@@ -245,11 +245,11 @@
                     <h5 class="modal-title"><i class="bi bi-sliders"></i> Propiedades del campo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" id="properties-content">
                     <!-- Aquí se cargan dinámicamente los controles de propiedades -->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="save-properties">Guardar</button>
+                    <!-- El botón guardar ahora se incluye en el form dinámico, no aquí -->
                 </div>
             </div>
         </div>
@@ -289,6 +289,7 @@
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.4.33/sweetalert2.min.js"></script>
+    <script src="/formbox/panel_properties.js"></script>
     <script>
         // --- Estado global y helpers ---
         window.sections = window.sections || [];
@@ -477,25 +478,30 @@
             });
 
             // Selección visual y abrir propiedades
-            $(document).off('click', '.elementor-widget').on('click', '.elementor-widget', function(e) {
-                e.preventDefault();
+            $('#sections-list').on('click', '.elementor-widget', function(e) {
+                e.stopPropagation();
                 $('.elementor-widget').removeClass('selected');
                 $(this).addClass('selected');
-                cargarPropiedadesWidget($(this));
-                $('#properties-panel').modal('show');
+                const sidx = $(this).data('sidx');
+                const cidx = $(this).data('cidx');
+                const widx = $(this).data('widx');
+                let widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
+                if(widget) {
+                    renderWidgetPropertiesPanel(widget, sidx, cidx, widx);
+                    // Mostrar el modal correctamente usando Bootstrap
+                    var modal = new bootstrap.Modal(document.getElementById('properties-panel'));
+                    modal.show();
+                }
             });
 
-            // Guardar propiedades
-            $(document).off('click', '#save-properties').on('click', '#save-properties', function(e) {
+            // Guardar propiedades del widget
+            $(document).off('submit', '#widget-properties-form').on('submit', '#widget-properties-form', function(e) {
                 e.preventDefault();
                 guardarPropiedadesWidget();
-                $('#properties-panel').modal('hide');
+                var modalEl = document.getElementById('properties-panel');
+                var modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
                 renderSections();
-            });
-
-            // Limpiar selección al cerrar modal
-            $(document).on('hidden.bs.modal', '#properties-panel', function () {
-                $('.elementor-widget').removeClass('selected');
             });
 
             // Conectar el botón de vista previa ORIGINAL
@@ -594,53 +600,6 @@
             Object.keys(window.widgetTypes).forEach(type => {
                 $body.append(`<button class="btn btn-outline-primary w-100 mb-2 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button>`);
             });
-        }
-
-        // Cargar propiedades del widget seleccionado
-        function cargarPropiedadesWidget($widget) {
-            const sidx = $widget.data('sidx');
-            const cidx = $widget.data('cidx');
-            const widx = $widget.data('widx');
-            const widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
-            if (!widget) {
-                Swal.fire('Error', 'No se pudo encontrar el widget seleccionado. Puede que el modelo esté desincronizado.', 'error');
-                $('#properties-panel .modal-body').html('<div class="text-danger">No se pudo cargar el widget.</div>');
-                return;
-            }
-            let html = '';
-            html += `<div class='mb-2'><label class='form-label'>Tipo</label><input class='form-control' value='${window.widgetTypes[widget.type] || widget.type}' disabled></div>`;
-            html += `<div class='mb-2'><label class='form-label'>Etiqueta</label><input class='form-control' id='prop-label' value='${widget.label || ''}'></div>`;
-            html += `<div class='mb-2'><label class='form-label'>ID</label><input class='form-control' id='prop-id' value='${widget.id || ''}'></div>`;
-            html += `<div class='mb-2'><label class='form-label'>Nombre (name)</label><input class='form-control' id='prop-name' value='${widget.name || ''}'></div>`;
-            html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-hidden' ${widget.hidden ? 'checked' : ''}><label class='form-check-label' for='prop-hidden'>Ocultar campo</label></div>`;
-            html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-disabled' ${widget.disabled ? 'checked' : ''}><label class='form-check-label' for='prop-disabled'>Deshabilitado</label></div>`;
-            if(widget.type === 'select' || widget.type === 'radio') {
-                html += `<div class='mb-2'><label class='form-label'>Opciones (una por línea)</label><textarea class='form-control' id='prop-options' rows='3'>${(widget.options||[]).join('\n')}</textarea></div>`;
-            }
-            html += `<button class='btn btn-primary w-100 mt-2' id='save-properties'>Guardar</button>`;
-            $('#properties-panel .modal-body').html(html);
-        }
-
-        // Guardar propiedades editadas
-        function guardarPropiedadesWidget() {
-            const $selected = $('.elementor-widget.selected');
-            if ($selected.length === 0) return;
-            const sidx = $selected.data('sidx');
-            const cidx = $selected.data('cidx');
-            const widx = $selected.data('widx');
-            let widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
-            if (!widget) {
-                Swal.fire('Error', 'No se pudo encontrar el widget para guardar los cambios.', 'error');
-                return;
-            }
-            widget.label = $('#prop-label').val();
-            widget.id = $('#prop-id').val();
-            widget.name = $('#prop-name').val();
-            widget.hidden = $('#prop-hidden').is(':checked');
-            widget.disabled = $('#prop-disabled').is(':checked');
-            if(widget.type === 'select' || widget.type === 'radio') {
-                widget.options = ($('#prop-options').val() || '').split('\n').map(opt => opt.trim()).filter(opt => opt);
-            }
         }
     </script>
 </body>
