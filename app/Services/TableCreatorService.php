@@ -19,6 +19,19 @@ class TableCreatorService
     {
         Schema::create($tableName, function (Blueprint $table) use ($fields) {
             $primary = [];
+            // Detectar si el usuario ya definió algún campo como llave primaria
+            $hasPrimary = false;
+            foreach ($fields as $field) {
+                if (!empty($field['is_primary'])) {
+                    $hasPrimary = true;
+                    break;
+                }
+            }
+            // Si NO hay llave primaria definida, agregar id autoincremental
+            if (!$hasPrimary) {
+                $table->bigIncrements('id');
+                $primary[] = 'id';
+            }
             foreach ($fields as $field) {
                 $type = $field['type'];
                 $name = $field['name'];
