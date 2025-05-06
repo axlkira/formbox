@@ -203,7 +203,7 @@
             <span class="navbar-brand fw-bold text-primary"><i class="bi bi-ui-checks-grid"></i> FormBox</span>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-primary" title="Guardar"><i class="bi bi-save"></i></button>
-                <button class="btn btn-outline-secondary" title="Vista previa"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-outline-secondary" title="Vista previa" id="btn-preview"><i class="bi bi-eye"></i></button>
                 <button class="btn btn-outline-success" title="Exportar ZIP"><i class="bi bi-file-earmark-zip"></i></button>
                 <button class="btn btn-outline-warning" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
             </div>
@@ -264,6 +264,23 @@
                 </div>
                 <div class="modal-body">
                     <!-- Aquí se listan los tipos de widgets disponibles -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Vista Previa -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="previewModalLabel"><i class="bi bi-eye"></i> Vista previa del formulario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body bg-light" id="preview-content">
+                    <!-- Aquí se renderiza el formulario -->
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -480,6 +497,86 @@
             $(document).on('hidden.bs.modal', '#properties-panel', function () {
                 $('.elementor-widget').removeClass('selected');
             });
+
+            // Conectar el botón de vista previa ORIGINAL
+            $(document).off('click', '#btn-preview').on('click', '#btn-preview', function() {
+                renderPreview();
+                new bootstrap.Modal(document.getElementById('previewModal')).show();
+            });
+
+            // Renderiza el formulario actual en modo solo lectura en el modal
+            function renderPreview() {
+                let html = '<form class="p-2">';
+                window.sections.forEach(section => {
+                    html += '<div class="row mb-4">';
+                    section.columns.forEach(column => {
+                        html += '<div class="col">';
+                        column.widgets.forEach(widget => {
+                            if(widget.hidden) return;
+                            html += '<div class="mb-3">';
+                            if(widget.label) html += `<label class='form-label fw-semibold mb-1'>${widget.label}</label>`;
+                            switch(widget.type) {
+                                case 'text':
+                                    html += `<input type='text' class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''} />`;
+                                    break;
+                                case 'textarea':
+                                    html += `<textarea class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''}></textarea>`;
+                                    break;
+                                case 'select':
+                                    html += `<select class='form-select' ${widget.disabled ? 'disabled' : ''}>`;
+                                    (widget.options||[]).forEach(opt => { html += `<option>${opt}</option>`; });
+                                    html += '</select>';
+                                    break;
+                                case 'checkbox':
+                                    html += `<div class='form-check'><input class='form-check-input' type='checkbox' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
+                                    break;
+                                case 'switch':
+                                    html += `<div class='form-check form-switch'><input class='form-check-input' type='checkbox' role='switch' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
+                                    break;
+                                case 'radio':
+                                    (widget.options||[]).forEach(opt => {
+                                        html += `<div class='form-check'><input class='form-check-input' type='radio' name='${widget.name||''}' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${opt}</label></div>`;
+                                    });
+                                    break;
+                                case 'button':
+                                    html += `<button class='btn btn-primary w-100' type='button' ${widget.disabled ? 'disabled' : ''}>${widget.label||'Botón'}</button>`;
+                                    break;
+                                case 'date':
+                                    html += `<input type='date' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'file':
+                                    html += `<input type='file' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'email':
+                                    html += `<input type='email' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'number':
+                                    html += `<input type='number' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'password':
+                                    html += `<input type='password' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'color':
+                                    html += `<input type='color' class='form-control form-control-color' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'range':
+                                    html += `<input type='range' class='form-range' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'static':
+                                    html += `<div class='form-text text-muted'>${widget.label||''}</div>`;
+                                    break;
+                                default:
+                                    html += `<input type='text' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
+                            }
+                            html += '</div>';
+                        });
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                });
+                html += '</form>';
+                $('#preview-content').html(html);
+            }
         });
 
         // Crear sección con el número de columnas seleccionado
