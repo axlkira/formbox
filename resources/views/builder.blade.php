@@ -201,6 +201,9 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" style="z-index:1100;">
         <div class="container-fluid py-2">
             <span class="navbar-brand fw-bold text-primary"><i class="bi bi-ui-checks-grid"></i> FormBox</span>
+            <button id="go-to-records" class="btn btn-outline-primary ms-3 d-none" type="button">
+                <i class="bi bi-table"></i> Ir a registros
+            </button>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-primary" title="Guardar" id="btn-save"><i class="bi bi-save"></i></button>
                 <button class="btn btn-outline-secondary" title="Vista previa" id="btn-preview"><i class="bi bi-eye"></i></button>
@@ -864,6 +867,50 @@
 
         // Botón para abrir el modal de carga (puedes ubicarlo donde gustes)
         $('#btn-load').on('click', showLoadFormModal);
+
+        // --- Mostrar botón para ir al CRUD dinámico tras guardar ---
+        function getCurrentTableName() {
+            // Usa la lógica de backend para normalizar el nombre
+            const name = $('#form-name').val() || window.lastSavedFormName;
+            if (!name) return null;
+            return name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+        }
+
+        function showGoToRecordsButton(tableName) {
+            if (!tableName) return;
+            $('#go-to-records').removeClass('d-none').off('click').on('click', function() {
+                window.open(`/forms/${tableName}/records`, '_blank');
+            });
+        }
+
+        // Hook tras guardar formulario
+        function afterFormSaved(name) {
+            window.lastSavedFormName = name;
+            const tableName = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+            showGoToRecordsButton(tableName);
+        }
+
+        // Interceptar respuesta de guardado (AJAX)
+        $(document).ajaxSuccess(function(event, xhr, settings) {
+            if (settings.url.includes('/formbox/save')) {
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    if (resp && resp.message && resp.file) {
+                        const n = $('#form-name').val() || window.lastSavedFormName;
+                        afterFormSaved(n);
+                    }
+                } catch(e) {}
+            }
+        });
+
+        // También mostrar el botón si se carga un formulario guardado
+        $(document).on('change', '#select-json-form', function() {
+            const fname = $(this).val();
+            if (fname) {
+                const base = fname.replace(/_\d{8}_\d{6}\.json$/, '');
+                showGoToRecordsButton(base);
+            }
+        });
     </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
+use App\Services\TableCreatorService;
 
 class FormboxController extends Controller
 {
@@ -60,43 +61,40 @@ class FormboxController extends Controller
             mkdir($path, 0777, true);
         }
         file_put_contents($path . '/' . $filename, $sections);
-
-        // --- Guardar también en la base de datos ---
+        // Procesar y guardar en base de datos
         $sectionsArr = json_decode($sections, true);
-        if (!$sectionsArr || !is_array($sectionsArr)) {
-            return response()->json(['message' => 'Estructura de formulario inválida.'], 400);
-        }
-        // Determinar table_name único (puedes ajustar esta lógica si hay panel para definirlo)
         $tableName = preg_replace('/[^a-zA-Z0-9_]/', '_', strtolower($name));
-        // Buscar o crear formulario
         $form = \App\Models\Form::updateOrCreate(
-            [ 'table_name' => $tableName ],
+            ['table_name' => $tableName],
             [
                 'name' => $name,
-                'description' => $request->input('description'),
                 'json_file' => $filename,
-                'user_id' => auth()->id() ?? null,
-                'version' => null
             ]
         );
-        // Procesar campos (aplanar secciones y columnas)
+        // Extraer campos para la tabla
         $fields = [];
         $order = 0;
         foreach ($sectionsArr as $section) {
-            if (!isset($section['columns']) || !is_array($section['columns'])) continue;
-            foreach ($section['columns'] as $col) {
-                if (!isset($col['widgets']) || !is_array($col['widgets'])) continue;
-                foreach ($col['widgets'] as $widget) {
-                    $fields[] = [
+            foreach ($section['columns'] as $column) {
+                foreach ($column['widgets'] as $widget) {
+                    $field = [
                         'form_id' => $form->id,
                         'name' => $widget['name'] ?? ('field_' . $order),
-                        'label' => $widget['label'] ?? ('Campo ' . ($order+1)),
-                        'type' => $widget['type'] ?? 'text',
-                        'options' => isset($widget['options']) ? json_encode($widget['options']) : null,
+                        'label' => $widget['label'] ?? '',
+                        'type' => $widget['type'] ?? 'string',
                         'order' => $order,
                         'required' => !empty($widget['required']),
-                        'extra' => isset($widget['extra']) ? json_encode($widget['extra']) : null
+                        'extra' => json_encode($widget),
                     ];
+                    // Soporte para llaves primarias y foráneas
+                    if (!empty($widget['is_primary'])) $field['is_primary'] = true;
+                    if (!empty($widget['is_foreign'])) {
+                        $field['is_foreign'] = true;
+                        $field['foreign_table'] = $widget['foreign_table'] ?? null;
+                        $field['foreign_column'] = $widget['foreign_column'] ?? null;
+                        $field['on_delete'] = $widget['on_delete'] ?? null;
+                    }
+                    $fields[] = $field;
                     $order++;
                 }
             }
@@ -106,8 +104,17 @@ class FormboxController extends Controller
         foreach ($fields as $f) {
             \App\Models\FormField::create($f);
         }
-        // --- Fin guardado en base de datos ---
-        return response()->json(['message' => 'Formulario guardado correctamente.', 'file' => $filename, 'form_id' => $form->id], 200);
+        // --- Crear tabla física automáticamente si no existe ---
+        try {
+            $service = new TableCreatorService();
+            if (!\Schema::hasTable($tableName)) {
+                $service->createTable($tableName, $fields);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Formulario guardado pero error creando tabla: ' . $e->getMessage(), 'file' => $filename, 'form_id' => $form->id], 500);
+        }
+        // --- Fin guardado en base de datos y tabla física ---
+        return response()->json(['message' => 'Formulario guardado correctamente y tabla creada.', 'file' => $filename, 'form_id' => $form->id], 200);
     }
 
     // Listar archivos JSON de formularios guardados
@@ -246,6 +253,7 @@ class FormboxController extends Controller
         if (isset($widget['hidden']) && $widget['hidden']) return '';
         $label = isset($widget['label']) ? $widget['label'] : '';
         $name = isset($widget['name']) ? $widget['name'] : '';
+        $id = isset($widget['id']) ? $widget['id'] : '';
         $required = (isset($widget['required']) && $widget['required']) ? 'required' : '';
         $disabled = (isset($widget['disabled']) && $widget['disabled']) ? 'disabled' : '';
         $readonly = (isset($widget['readonly']) && $widget['readonly']) ? 'readonly' : '';
@@ -257,14 +265,13 @@ class FormboxController extends Controller
         $step = isset($widget['step']) ? $widget['step'] : '';
         $pattern = isset($widget['pattern']) ? $widget['pattern'] : '';
         $multiple = (isset($widget['multiple']) && $widget['multiple']) ? 'multiple' : '';
-        $size = isset($widget['size']) ? $widget['size'] : '';
+        $size = isset($widget['size']) && $widget['size'] !== null ? $widget['size'] : 1; // Asegurar que $size siempre tenga valor por defecto si no está definido
         $accept = isset($widget['accept']) ? $widget['accept'] : '';
         $value = isset($widget['value']) ? $widget['value'] : '';
         $inline = (isset($widget['inline']) && $widget['inline']);
         $checked = (isset($widget['checked']) && $widget['checked']) ? 'checked' : '';
         $default = isset($widget['default']) ? $widget['default'] : '';
         $options = isset($widget['options']) ? $widget['options'] : [];
-        $id = isset($widget['id']) ? $widget['id'] : '';
         $html = "";
         if ($label && !in_array($widget['type'], ['checkbox', 'switch', 'radio', 'button', 'static'])) {
             $html .= "<label class='form-label fw-semibold mb-1'>{$label}</label>\n";
@@ -343,7 +350,7 @@ class FormboxController extends Controller
         $disabled = (isset($widget['disabled']) && $widget['disabled']) ? 'disabled' : '';
         $readonly = (isset($widget['readonly']) && $widget['readonly']) ? 'readonly' : '';
         $placeholder = isset($widget['placeholder']) ? $widget['placeholder'] : '';
-        $maxlength = isset($widget['maxlength']) ? $widget['maxlength'] : '';
+        $maxlength = isset($widget['maxlength']) ? $maxlength : '';
         $minlength = isset($widget['minlength']) ? $widget['minlength'] : '';
         $min = isset($widget['min']) ? $widget['min'] : '';
         $max = isset($widget['max']) ? $widget['max'] : '';
