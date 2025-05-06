@@ -8,6 +8,7 @@
     <title>FormBox Builder</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.4.33/sweetalert2.min.css" />
     <style>
         body { background: #f8f9fa; }
         #sidebar-menu {
@@ -196,446 +197,354 @@
     </style>
 </head>
 <body>
-    <div id="sidebar-menu" style="background: linear-gradient(120deg, #2563eb 70%, #60a5fa 100%);">
-        <div class="d-flex flex-column h-100">
-            <div class="p-3 border-bottom"><span class="fw-bold">FormBox</span></div>
-            <div class="builder-toolbar" style="padding:28px 18px 0 18px;">
-                <button id="add-section" class="btn btn-light text-primary w-100 mb-3 fw-bold" style="background: linear-gradient(90deg, #fff 60%, #dbeafe 100%); border: none; font-weight: 700; border-radius: 12px; box-shadow: 0 2px 8px #2563eb22; transition: box-shadow .2s, background .2s; margin-bottom: 16px;"><i class="bi bi-plus-circle"></i> Agregar sección</button>
-                <button id="open-widget-modal" class="btn btn-outline-light w-100 mb-2"><i class="bi bi-plus-square"></i> Agregar widget</button>
-                <div class="text-white-50 small mt-3">
-                    <ul style="padding-left:18px;">
-                        <li>1. Agrega una sección (fila)</li>
-                        <li>2. Selecciona una columna</li>
-                        <li>3. Haz clic en Agregar widget</li>
-                    </ul>
+    <!-- Topbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" style="z-index:1100;">
+        <div class="container-fluid py-2">
+            <span class="navbar-brand fw-bold text-primary"><i class="bi bi-ui-checks-grid"></i> FormBox</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" title="Guardar"><i class="bi bi-save"></i></button>
+                <button class="btn btn-outline-secondary" title="Vista previa"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-outline-success" title="Exportar ZIP"><i class="bi bi-file-earmark-zip"></i></button>
+                <button class="btn btn-outline-warning" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
+            </div>
+        </div>
+    </nav>
+    <!-- Sidebar minimalista -->
+    <div id="sidebar-menu">
+        <div class="d-flex flex-column h-100 align-items-center pt-4">
+            <button id="add-section" class="btn btn-primary mb-3 w-100 d-flex flex-column align-items-center justify-content-center" title="Agregar sección" style="font-size:1.3rem;">
+                <i class="bi bi-layout-three-columns mb-1" style="font-size:2rem;"></i>
+                <span style="font-size:0.95rem; font-weight:500;">Agregar sección</span>
+            </button>
+            <button id="open-widget-modal" class="btn btn-outline-primary mb-3 w-100" title="Agregar campo"><i class="bi bi-plus-circle"></i></button>
+            <div class="sidebar-instructions mt-auto mb-3 px-2 text-center">
+                <i class="bi bi-info-circle"></i>
+                <ul class="list-unstyled small mt-2">
+                    <li>Arrastra campos al canvas</li>
+                    <li>Haz clic para editar</li>
+                    <li>Guarda tu formulario</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Canvas central -->
+    <main id="main-builder-canvas">
+        <div class="container-fluid">
+            <div id="sections-list"></div>
+            <div id="empty-builder" class="text-center text-muted mt-5" style="display:none;">
+                <i class="bi bi-ui-checks-grid display-1"></i>
+                <div class="fs-4 mt-3">Arrastra o agrega secciones y campos para comenzar</div>
+            </div>
+        </div>
+    </main>
+    <!-- Panel de propiedades flotante -->
+    <div id="properties-panel" class="modal fade" tabindex="-1" style="z-index:1200;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-sliders"></i> Propiedades del campo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Aquí se cargan dinámicamente los controles de propiedades -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="save-properties">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Modal de widgets -->
+    <!-- Widget Modal (para agregar campos) -->
     <div class="modal fade" id="widgetModal" tabindex="-1" aria-labelledby="widgetModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="widgetModalLabel">Selecciona un widget</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row" id="widget-modal-list">
-              <!-- Aquí se llenan los widgets -->
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="widgetModalLabel">Agregar Campo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Aquí se listan los tipos de widgets disponibles -->
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="main-builder-canvas">
-        <div id="sections-list"></div>
-        <div id="empty-builder" class="text-center text-secondary" style="opacity:.7;">
-            <i class="bi bi-hand-index-thumb fs-1"></i><br>
-            Agrega una sección para comenzar a construir tu formulario
         </div>
     </div>
-    <div class="properties-panel" id="properties-panel">
-        <div class="fw-bold mb-2">Propiedades del elemento</div>
-        <div id="properties-content"></div>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.7/dist/sweetalert2.all.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.7/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.4.33/sweetalert2.min.js"></script>
     <script>
-    window.sections = window.sections || [];
-    window.widgetTypes = window.widgetTypes || {
-        text: 'Campo de texto', textarea: 'Área de texto', select: 'Selecciona una opción', switch: 'Interruptor', checkbox: 'Casilla', button: 'Botón', date: 'Fecha', file: 'Archivo', email: 'Email', number: 'Número', password: 'Password', color: 'Color', range: 'Rango', radio: 'Radio', static: 'Texto/HTML', card: 'Card'
-    };
-    window.widgetIcons = {
-        text: 'bi-fonts', textarea: 'bi-card-text', select: 'bi-list', switch: 'bi-toggle-on', checkbox: 'bi-check2-square', button: 'bi-box-arrow-in-right', date: 'bi-calendar', file: 'bi-paperclip', email: 'bi-envelope', number: 'bi-123', password: 'bi-key', color: 'bi-palette', range: 'bi-sliders', radio: 'bi-record-circle', static: 'bi-type', card: 'bi-card-image'
-    };
+        // --- Estado global y helpers ---
+        window.sections = window.sections || [];
+        window.widgetTypes = window.widgetTypes || {
+            text: 'Campo de texto', textarea: 'Área de texto', select: 'Selección', switch: 'Interruptor', checkbox: 'Casilla', button: 'Botón', date: 'Fecha', file: 'Archivo', email: 'Email', number: 'Número', password: 'Password', color: 'Color', range: 'Rango', radio: 'Radio', static: 'Texto/HTML', card: 'Card'
+        };
+        window.widgetIcons = {
+            text: 'bi-fonts', textarea: 'bi-card-text', select: 'bi-list', switch: 'bi-toggle-on', checkbox: 'bi-check2-square', button: 'bi-box-arrow-in-right', date: 'bi-calendar', file: 'bi-paperclip', email: 'bi-envelope', number: 'bi-123', password: 'bi-key', color: 'bi-palette', range: 'bi-sliders', radio: 'bi-record-circle', static: 'bi-type', card: 'bi-card-image'
+        };
 
-    let lastDraggedWidget = null;
-
-    $(document).ready(function() {
-        renderSections();
-        
-        $(document).on('mousedown', '.elementor-widget', function(e) {
-            lastDraggedWidget = {
-                sidx: $(this).data('sidx'),
-                cidx: $(this).data('cidx'),
-                widx: $(this).data('widx'),
-                type: window.sections[$(this).data('sidx')]?.columns[$(this).data('cidx')]?.widgets[$(this).data('widx')]?.type || 'text'
-            };
-            console.log('Widget arrastrado:', lastDraggedWidget);
-        });
-        
-        $(document).off('click', '#add-section').on('click', '#add-section', function() {
-            Swal.fire({
-                title: '¿Cuántas columnas quieres en esta fila?',
-                input: 'range',
-                inputAttributes: { min: 1, max: 6, step: 1 },
-                inputValue: 1,
-                showCancelButton: true,
-                confirmButtonText: 'Agregar',
-                cancelButtonText: 'Cancelar',
-                preConfirm: (value) => parseInt(value)
-            }).then((result) => {
-                if (result.isConfirmed && result.value) {
-                    const numCols = parseInt(result.value);
-                    let cols = [];
-                    for (let i = 0; i < numCols; i++) { cols.push({ widgets: [] }); }
-                    window.sections.push({ columns: cols });
-                    renderSections();
-                }
-            });
-        });
-        $(document).off('click', '.btn-add-column').on('click', '.btn-add-column', function() {
-            const sidx = $(this).data('sidx');
-            window.sections[sidx].columns.push({ widgets: [] });
-            renderSections();
-        });
-        $(document).off('click', '.btn-remove-section').on('click', '.btn-remove-section', function(e) {
-            e.stopPropagation();
-            const sidx = $(this).data('sidx');
-            window.sections.splice(sidx, 1);
-            renderSections();
-        });
-        $(document).off('click', '.btn-remove-column').on('click', '.btn-remove-column', function(e) {
-            e.stopPropagation();
-            const sidx = $(this).data('sidx');
-            const cidx = $(this).data('cidx');
-            window.sections[sidx].columns.splice(cidx, 1);
-            if (window.sections[sidx].columns.length === 0) window.sections.splice(sidx, 1);
-            renderSections();
-        });
-        $(document).off('click', '.btn-remove-widget').on('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            const sidx = $(this).data('sidx');
-            const cidx = $(this).data('cidx');
-            const widx = $(this).data('widx');
-            window.sections[sidx].columns[cidx].widgets.splice(widx, 1);
-            renderSections();
-        });
-        // Modal widgets
-        $('#open-widget-modal').on('click', function() {
-            renderWidgetModal();
-            new bootstrap.Modal(document.getElementById('widgetModal')).show();
-        });
-        $(document).on('click', '.btn-modal-widget', function() {
-            // Permitir agregar widget a la primera columna si no hay ninguna seleccionada
-            let $col = $('.elementor-column.selected');
-            if ($col.length === 0) $col = $('.elementor-column').first();
-            if ($col.length === 0) {
-                Swal.fire('Primero debes agregar una sección y al menos una columna.');
+        // Renderizar secciones y columnas (estructura restaurada y drag & drop funcional)
+        function renderSections() {
+            const $list = $('#sections-list');
+            $list.empty();
+            if (window.sections.length === 0) {
+                $('#empty-builder').show();
                 return;
             }
-            const type = $(this).data('widget');
-            const sidx = $col.data('sidx');
-            const cidx = $col.data('cidx');
-            window.sections[sidx].columns[cidx].widgets.push({ type });
-            renderSections();
-            bootstrap.Modal.getInstance(document.getElementById('widgetModal')).hide();
-        });
-        // Selección visual
-        $(document).on('click', '.elementor-section', function(e) {
-            e.stopPropagation();
-            $('.elementor-section').removeClass('selected');
-            $(this).addClass('selected');
-            $('#properties-panel').addClass('active');
-            $('#properties-content').html('<div>Propiedades de la sección (próximamente editable)</div>');
-        });
-        $(document).on('click', '.elementor-column', function(e) {
-            e.stopPropagation();
-            $('.elementor-column').removeClass('selected');
-            $(this).addClass('selected');
-            $('#properties-panel').addClass('active');
-            $('#properties-content').html('<div>Propiedades de la columna (próximamente editable)</div>');
-        });
-        $(document).on('click', '.elementor-widget', function(e) {
-            e.stopPropagation();
-            $('.elementor-widget').removeClass('selected');
-            $(this).addClass('selected');
-            $('#properties-panel').addClass('active');
-            $('#properties-content').html('<div>Propiedades del widget (próximamente editable)</div>');
-        });
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.elementor-section, .elementor-column, .elementor-widget, #properties-panel, #widgetModal').length) {
-                $('.selected').removeClass('selected');
-                $('#properties-panel').removeClass('active');
-            }
-        });
-    });
-    
-    function renderSections() {
-        const $list = $('#sections-list');
-        $list.empty();
-        if (window.sections.length === 0) {
-            $('#empty-builder').show();
-        } else {
             $('#empty-builder').hide();
             window.sections.forEach((section, sidx) => {
                 let sectionHtml = `<div class='elementor-section' data-sidx='${sidx}'>`;
                 sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-section' title='Eliminar sección' data-sidx='${sidx}'><i class='bi bi-x'></i></button>`;
                 sectionHtml += `<div class='row'>`;
-                section.columns.forEach((col, cidx) => {
+                section.columns.forEach((column, cidx) => {
                     sectionHtml += `<div class='col elementor-column' style='width:${100/section.columns.length}%;display:inline-block;vertical-align:top;' data-sidx='${sidx}' data-cidx='${cidx}'>`;
                     sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-column' title='Eliminar columna' data-sidx='${sidx}' data-cidx='${cidx}'><i class='bi bi-x'></i></button>`;
                     sectionHtml += `<div class='widgets-list sortable-widgets' data-sidx='${sidx}' data-cidx='${cidx}'>`;
-                    col.widgets.forEach((widget, widx) => {
+                    column.widgets.forEach((widget, widx) => {
                         sectionHtml += `<div class='elementor-widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'>`;
-                        sectionHtml += `<button class='btn btn-remove-widget' title='Eliminar widget' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'><i class='bi bi-x'></i></button>`;
+                        sectionHtml += `<button class='btn btn-danger btn-sm btn-remove-widget' title='Eliminar campo' data-sidx='${sidx}' data-cidx='${cidx}' data-widx='${widx}'><i class='bi bi-x'></i></button>`;
                         sectionHtml += `<div class='widget-preview'>`;
-                        if(widget.type === 'text') {
-                            sectionHtml += `<label><i class='bi bi-fonts'></i> Texto</label><input type='text' class='form-control' disabled placeholder='Campo de texto'>`;
-                        } else if(widget.type === 'textarea') {
-                            sectionHtml += `<label><i class='bi bi-card-text'></i> Área</label><textarea class='form-control' rows='2' disabled placeholder='Área de texto'></textarea>`;
-                        } else if(widget.type === 'select') {
-                            sectionHtml += `<label><i class='bi bi-list'></i> Selección</label><select class='form-select' disabled><option>Opción 1</option><option>Opción 2</option></select>`;
-                        } else if(widget.type === 'checkbox') {
-                            sectionHtml += `<label><i class='bi bi-check2-square'></i> Casilla</label><input type='checkbox' class='form-check-input' disabled>`;
-                        } else if(widget.type === 'switch') {
-                            sectionHtml += `<label><i class='bi bi-toggle-on'></i> Switch</label><input type='checkbox' class='form-check-input' disabled style='accent-color:#2563eb;'>`;
-                        } else if(widget.type === 'button') {
-                            sectionHtml += `<button class='btn btn-primary btn-sm' disabled><i class='bi bi-box-arrow-in-right'></i> Botón</button>`;
-                        } else if(widget.type === 'date') {
-                            sectionHtml += `<label><i class='bi bi-calendar'></i> Fecha</label><input type='date' class='form-control' disabled>`;
-                        } else if(widget.type === 'file') {
-                            sectionHtml += `<label><i class='bi bi-paperclip'></i> Archivo</label><input type='file' class='form-control' disabled>`;
-                        } else if(widget.type === 'email') {
-                            sectionHtml += `<label><i class='bi bi-envelope'></i> Email</label><input type='email' class='form-control' disabled placeholder='Email'>`;
-                        } else if(widget.type === 'number') {
-                            sectionHtml += `<label><i class='bi bi-123'></i> Número</label><input type='number' class='form-control' disabled placeholder='Número'>`;
-                        } else if(widget.type === 'password') {
-                            sectionHtml += `<label><i class='bi bi-key'></i> Password</label><input type='password' class='form-control' disabled placeholder='Password'>`;
-                        } else if(widget.type === 'color') {
-                            sectionHtml += `<label><i class='bi bi-palette'></i> Color</label><input type='color' class='form-control form-control-color' disabled>`;
-                        } else if(widget.type === 'range') {
-                            sectionHtml += `<label><i class='bi bi-sliders'></i> Rango</label><input type='range' class='form-range' disabled>`;
-                        } else if(widget.type === 'radio') {
-                            sectionHtml += `<label><i class='bi bi-record-circle'></i> Radio</label><input type='radio' class='form-check-input' disabled>`;
-                        } else if(widget.type === 'static') {
-                            sectionHtml += `<span class='text-secondary'><i class='bi bi-type'></i> Texto/HTML estático</span>`;
-                        } else if(widget.type === 'card') {
-                            sectionHtml += `<div class='card' style='width:100%;background:#fff;border:1px solid #c7d2fe;'><div class='card-body'><h5 class='card-title'><i class='bi bi-card-image'></i> Card</h5><p class='card-text'>Contenido de ejemplo</p></div></div>`;
-                        } else {
-                            sectionHtml += `<span><i class='bi ${window.widgetIcons[widget.type] || 'bi-box'}'></i> ${window.widgetTypes[widget.type] || widget.type}</span>`;
-                        }
+                        sectionHtml += `<i class='bi ${window.widgetIcons ? (window.widgetIcons[widget.type] || 'bi-box') : 'bi-box'} me-2'></i>`;
+                        sectionHtml += `<span>${widget.label || window.widgetTypes[widget.type] || widget.type}</span>`;
                         sectionHtml += `</div>`;
                         sectionHtml += `</div>`;
                     });
-                    sectionHtml += `</div></div>`;
+                    sectionHtml += `</div>`; // widgets-list
+                    sectionHtml += `</div>`; // col
                 });
-                sectionHtml += `</div>`;
                 sectionHtml += `<div class='mt-2'><button class='btn btn-outline-primary btn-sm btn-add-column' data-sidx='${sidx}'><i class='bi bi-plus-square'></i> Agregar columna</button></div>`;
-                sectionHtml += `</div>`;
+                sectionHtml += `</div>`; // row
+                sectionHtml += `</div>`; // section
                 $list.append(sectionHtml);
             });
+            // Drag & drop
+            $('.sortable-widgets').sortable({
+                connectWith: '.sortable-widgets',
+                handle: '.widget-preview',
+                placeholder: 'widget-placeholder',
+                update: function(event, ui) {
+                    sincronizarModeloDeDatos();
+                }
+            }).disableSelection();
+            actualizarIndicesDOM();
         }
-        
-        // Nueva implementación de drag & drop
-        initDragAndDrop();
-    }
 
-    function sincronizarModeloDeDatos() {
-        console.log('Sincronizando datos del modelo...');
-        
-        // Crear nueva estructura de datos basada en el DOM actual
-        let newSections = [];
-        
-        $('.elementor-section').each(function(sidx) {
-            let newSection = { columns: [] };
-            
-            $(this).find('.elementor-column').each(function(cidx) {
-                let newColumn = { widgets: [] };
-                
-                $(this).find('.elementor-widget').each(function(widx) {
-                    // Obtener datos del widget original
-                    let originalSidx = $(this).attr('data-sidx');
-                    let originalCidx = $(this).attr('data-cidx');
-                    let originalWidx = $(this).attr('data-widx');
-                    
-                    try {
-                        // Si existe en el modelo original, copiarlo
-                        if (window.sections[originalSidx] && 
-                            window.sections[originalSidx].columns[originalCidx] && 
-                            window.sections[originalSidx].columns[originalCidx].widgets[originalWidx]) {
-                            let widget = window.sections[originalSidx].columns[originalCidx].widgets[originalWidx];
+        // Sincronizar modelo de datos con el DOM (mejorada: re-renderiza para alinear DOM y modelo)
+        function sincronizarModeloDeDatos() {
+            let newSections = [];
+            $('.elementor-section').each(function(sidx) {
+                let newSection = { columns: [] };
+                $(this).find('.elementor-column').each(function(cidx) {
+                    let newColumn = { widgets: [] };
+                    $(this).find('.elementor-widget').each(function(widx) {
+                        const sidxData = $(this).data('sidx');
+                        const cidxData = $(this).data('cidx');
+                        const widxData = $(this).data('widx');
+                        if (window.sections[sidxData] && window.sections[sidxData].columns[cidxData] && window.sections[sidxData].columns[cidxData].widgets[widxData]) {
+                            let widget = window.sections[sidxData].columns[cidxData].widgets[widxData];
                             newColumn.widgets.push({...widget});
-                        } else if (lastDraggedWidget) {
-                            newColumn.widgets.push({ type: lastDraggedWidget.type });
-                        } else {
-                            // Intentar buscar por contenido si los índices no coinciden
-                            let foundWidget = false;
-                            for (let s = 0; s < window.sections.length; s++) {
-                                for (let c = 0; c < window.sections[s].columns.length; c++) {
-                                    for (let w = 0; w < window.sections[s].columns[c].widgets.length; w++) {
-                                        let currentWidget = window.sections[s].columns[c].widgets[w];
-                                        let currentHTML = $(this).html();
-                                        if (currentHTML.indexOf(currentWidget.type) > -1) {
-                                            newColumn.widgets.push({...currentWidget});
-                                            foundWidget = true;
-                                            break;
-                                        }
-                                    }
-                                    if (foundWidget) break;
-                                }
-                                if (foundWidget) break;
-                            }
-                            
-                            // Si no encontramos el widget, determinar tipo por el contenido HTML
-                            if (!foundWidget) {
-                                let type = 'text';
-                                if ($(this).find('.bi-card-text').length > 0) type = 'textarea';
-                                if ($(this).find('.bi-list').length > 0) type = 'select';
-                                if ($(this).find('.bi-check2-square').length > 0) type = 'checkbox';
-                                if ($(this).find('.bi-toggle-on').length > 0) type = 'switch';
-                                if ($(this).find('.bi-box-arrow-in-right').length > 0) type = 'button';
-                                if ($(this).find('.bi-calendar').length > 0) type = 'date';
-                                if ($(this).find('.bi-paperclip').length > 0) type = 'file';
-                                if ($(this).find('.bi-envelope').length > 0) type = 'email';
-                                if ($(this).find('.bi-123').length > 0) type = 'number';
-                                if ($(this).find('.bi-key').length > 0) type = 'password';
-                                if ($(this).find('.bi-palette').length > 0) type = 'color';
-                                if ($(this).find('.bi-sliders').length > 0) type = 'range';
-                                if ($(this).find('.bi-record-circle').length > 0) type = 'radio';
-                                if ($(this).find('.bi-type').length > 0) type = 'static';
-                                if ($(this).find('.card-title').length > 0) type = 'card';
-                                
-                                newColumn.widgets.push({ type });
-                            }
                         }
-                    } catch (error) {
-                        console.error("Error sincronizando widget:", error);
-                        // En caso de error, agregar un widget de texto como fallback
-                        newColumn.widgets.push({ type: 'text' });
+                    });
+                    newSection.columns.push(newColumn);
+                });
+                newSections.push(newSection);
+            });
+            window.sections = newSections;
+            renderSections(); // <-- Esto asegura que DOM y modelo estén alineados
+            if (typeof renderPreview === 'function') {
+                renderPreview();
+            }
+        }
+
+        // Sincroniza los data-attributes de los widgets con el modelo
+        function actualizarIndicesDOM() {
+            window.sections.forEach((section, sidx) => {
+                if (!section.columns) return;
+                section.columns.forEach((column, cidx) => {
+                    if (!column.widgets) return;
+                    column.widgets.forEach((widget, widx) => {
+                        // Busca el widget en el DOM por clase y label (más robusto: podrías usar un id único si lo tienes)
+                        const $widgets = $(".elementor-widget").filter(function() {
+                            return $(this).data('sidx') === sidx && $(this).data('cidx') === cidx;
+                        });
+                        // Si hay más de uno, asigna por orden
+                        $widgets.eq(widx).attr({'data-sidx': sidx, 'data-cidx': cidx, 'data-widx': widx});
+                    });
+                });
+            });
+        }
+
+        // --- Acciones UI ---
+        $(function() { 
+            renderSections();
+
+            // Agregar sección con SweetAlert
+            $(document).off('click', '#add-section').on('click', '#add-section', function() {
+                Swal.fire({
+                    title: '¿Cuántas columnas quieres en esta sección?',
+                    input: 'range',
+                    inputAttributes: { min: 1, max: 6, step: 1 },
+                    inputValue: 1,
+                    showCancelButton: true,
+                    confirmButtonText: 'Agregar',
+                    cancelButtonText: 'Cancelar',
+                    preConfirm: (value) => parseInt(value)
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        createSection(parseInt(result.value));
+                        Swal.fire('¡Sección agregada!', '', 'success');
                     }
                 });
-                
-                newSection.columns.push(newColumn);
             });
-            
-            newSections.push(newSection);
-        });
-        
-        // Reemplazar el modelo de datos actual
-        window.sections = newSections;
-        
-        // Actualizar atributos de datos en el DOM
-        actualizarIndices();
 
-        // Console debug to help identify issues
-        console.log('Modelo actualizado:', JSON.stringify(window.sections));
-        
-        // Resetear el último widget arrastrado
-        lastDraggedWidget = null;
-    }
+            // Agregar columna
+            $(document).off('click', '.btn-add-column').on('click', '.btn-add-column', function(e) {
+                e.preventDefault();
+                const sidx = $(this).data('sidx');
+                window.sections[sidx].columns.push({ widgets: [] });
+                renderSections();
+            });
 
-    function initDragAndDrop() {
-        console.log('Inicializando drag & drop...');
-        
-        // Destruir sortables previos
-        try {
-            $('.sortable-widgets').sortable('destroy');
-        } catch(e) {}
-        
-        // Inicializar sortable en todas las columnas
-        $('.sortable-widgets').sortable({
-            connectWith: '.sortable-widgets',
-            placeholder: 'sortable-placeholder',
-            items: '> .elementor-widget',
-            cursor: 'move',
-            opacity: 0.7,
-            revert: true,
-            tolerance: 'pointer',
-            zIndex: 9999,
-            scroll: true,
-            delay: 150,
-            distance: 5,
-            handle: '.widget-preview',
-            forceHelperSize: true, 
-            forcePlaceholderSize: true,
-            helper: function(event, ui) {
-                var $clone = $(ui).clone();
-                $clone.css('position', 'absolute');
-                return $clone;
-            },
-            start: function(e, ui) {
-                ui.placeholder.height(ui.item.height());
-                ui.helper.css('z-index', 9999);
-                $(this).sortable('refresh');
-                $('.sortable-widgets').sortable('refreshPositions');
-            },
-            over: function(e, ui) {
-                $(this).addClass('highlight-drop');
-            },
-            out: function(e, ui) {
-                $(this).removeClass('highlight-drop');
-            },
-            beforeStop: function(e, ui) {
-                // Evitar que se reinicialice durante el drag
+            // Eliminar sección
+            $(document).off('click', '.btn-remove-section').on('click', '.btn-remove-section', function(e) {
+                e.preventDefault();
                 e.stopPropagation();
-            },
-            receive: function(event, ui) {
-                console.log('Widget recibido en nueva columna');
-                $(this).removeClass('highlight-drop');
-            },
-            update: function(event, ui) {
-                console.log('Widget actualizado');
-                if(ui.sender) {
-                    console.log('Widget movido de otra columna');
-                } else {
-                    console.log('Widget reordenado en la misma columna');
+                const sidx = $(this).data('sidx');
+                window.sections.splice(sidx, 1);
+                renderSections();
+            });
+
+            // Eliminar columna
+            $(document).off('click', '.btn-remove-column').on('click', '.btn-remove-column', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const sidx = $(this).data('sidx');
+                const cidx = $(this).data('cidx');
+                window.sections[sidx].columns.splice(cidx, 1);
+                if (window.sections[sidx].columns.length === 0) window.sections.splice(sidx, 1);
+                renderSections();
+            });
+
+            // Eliminar widget
+            $(document).off('click', '.btn-remove-widget').on('click', '.btn-remove-widget', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const sidx = $(this).data('sidx');
+                const cidx = $(this).data('cidx');
+                const widx = $(this).data('widx');
+                window.sections[sidx].columns[cidx].widgets.splice(widx, 1);
+                renderSections();
+            });
+
+            // Abrir modal de widgets, pero si no hay secciones, mostrar SweetAlert
+            $(document).off('click', '#open-widget-modal').on('click', '#open-widget-modal', function() {
+                if (!window.sections || window.sections.length === 0) {
+                    Swal.fire('Primero debes agregar una sección antes de añadir campos.', '', 'info');
+                    return;
                 }
-            },
-            stop: function(e, ui) {
-                $(this).removeClass('highlight-drop');
-                // Dar tiempo para que termine la animación
-                setTimeout(function() {
-                    // Actualizar el modelo de datos
-                    sincronizarModeloDeDatos();
-                }, 100);
-            }
-        }).disableSelection();
-    }
+                renderWidgetModal();
+                new bootstrap.Modal(document.getElementById('widgetModal')).show();
+            });
 
-    function renderWidgetModal() {
-        const $list = $('#widget-modal-list');
-        $list.empty();
-        Object.keys(window.widgetTypes).forEach(type => {
-            $list.append(`<div class="col-6 mb-3"><button class="btn btn-outline-primary w-100 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button></div>`);
-        });
-    }
+            // Agregar widget a columna seleccionada (o primera si ninguna)
+            $(document).off('click', '.btn-modal-widget').on('click', '.btn-modal-widget', function(e) {
+                e.preventDefault();
+                let $col = $('.elementor-column.selected');
+                if ($col.length === 0) $col = $('.elementor-column').first();
+                if ($col.length === 0) return Swal.fire('Primero debes agregar una sección y columna.', '', 'info');
+                const type = $(this).data('widget');
+                const sidx = $col.data('sidx');
+                const cidx = $col.data('cidx');
+                window.sections[sidx].columns[cidx].widgets.push({ type });
+                renderSections();
+                bootstrap.Modal.getInstance(document.getElementById('widgetModal')).hide();
+            });
 
-    function actualizarIndices() {
-        // Recorremos todas las columnas y widgets para actualizar sus índices en el DOM
-        $('.elementor-section').each(function(sidx) {
-            $(this).attr('data-sidx', sidx);
-            $(this).find('.btn-remove-section').attr('data-sidx', sidx);
-            $(this).find('.btn-add-column').attr('data-sidx', sidx);
-            
-            $(this).find('.elementor-column').each(function(cidx) {
-                $(this).attr('data-sidx', sidx);
-                $(this).attr('data-cidx', cidx);
-                $(this).find('.btn-remove-column').attr('data-sidx', sidx);
-                $(this).find('.btn-remove-column').attr('data-cidx', cidx);
-                $(this).find('.sortable-widgets').attr('data-sidx', sidx);
-                $(this).find('.sortable-widgets').attr('data-cidx', cidx);
-                
-                $(this).find('.elementor-widget').each(function(widx) {
-                    $(this).attr('data-sidx', sidx);
-                    $(this).attr('data-cidx', cidx);
-                    $(this).attr('data-widx', widx);
-                    $(this).find('.btn-remove-widget').attr('data-sidx', sidx);
-                    $(this).find('.btn-remove-widget').attr('data-cidx', cidx);
-                    $(this).find('.btn-remove-widget').attr('data-widx', widx);
-                });
+            // Selección visual y abrir propiedades
+            $(document).off('click', '.elementor-widget').on('click', '.elementor-widget', function(e) {
+                e.preventDefault();
+                $('.elementor-widget').removeClass('selected');
+                $(this).addClass('selected');
+                cargarPropiedadesWidget($(this));
+                $('#properties-panel').modal('show');
+            });
+
+            // Guardar propiedades
+            $(document).off('click', '#save-properties').on('click', '#save-properties', function(e) {
+                e.preventDefault();
+                guardarPropiedadesWidget();
+                $('#properties-panel').modal('hide');
+                renderSections();
+            });
+
+            // Limpiar selección al cerrar modal
+            $(document).on('hidden.bs.modal', '#properties-panel', function () {
+                $('.elementor-widget').removeClass('selected');
             });
         });
-    }
+
+        // Crear sección con el número de columnas seleccionado
+        function createSection(columns) {
+            let cols = [];
+            for (let i = 0; i < columns; i++) { cols.push({ widgets: [] }); }
+            window.sections.push({ columns: cols });
+            renderSections();
+        }
+
+        // Renderizar opciones de widgets en el modal
+        function renderWidgetModal() {
+            const $body = $('#widgetModal .modal-body');
+            $body.empty();
+            Object.keys(window.widgetTypes).forEach(type => {
+                $body.append(`<button class="btn btn-outline-primary w-100 mb-2 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button>`);
+            });
+        }
+
+        // Cargar propiedades del widget seleccionado
+        function cargarPropiedadesWidget($widget) {
+            const sidx = $widget.data('sidx');
+            const cidx = $widget.data('cidx');
+            const widx = $widget.data('widx');
+            const widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
+            if (!widget) {
+                Swal.fire('Error', 'No se pudo encontrar el widget seleccionado. Puede que el modelo esté desincronizado.', 'error');
+                $('#properties-panel .modal-body').html('<div class="text-danger">No se pudo cargar el widget.</div>');
+                return;
+            }
+            let html = '';
+            html += `<div class='mb-2'><label class='form-label'>Tipo</label><input class='form-control' value='${window.widgetTypes[widget.type] || widget.type}' disabled></div>`;
+            html += `<div class='mb-2'><label class='form-label'>Etiqueta</label><input class='form-control' id='prop-label' value='${widget.label || ''}'></div>`;
+            html += `<div class='mb-2'><label class='form-label'>ID</label><input class='form-control' id='prop-id' value='${widget.id || ''}'></div>`;
+            html += `<div class='mb-2'><label class='form-label'>Nombre (name)</label><input class='form-control' id='prop-name' value='${widget.name || ''}'></div>`;
+            html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-hidden' ${widget.hidden ? 'checked' : ''}><label class='form-check-label' for='prop-hidden'>Ocultar campo</label></div>`;
+            html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-disabled' ${widget.disabled ? 'checked' : ''}><label class='form-check-label' for='prop-disabled'>Deshabilitado</label></div>`;
+            if(widget.type === 'select' || widget.type === 'radio') {
+                html += `<div class='mb-2'><label class='form-label'>Opciones (una por línea)</label><textarea class='form-control' id='prop-options' rows='3'>${(widget.options||[]).join('\n')}</textarea></div>`;
+            }
+            html += `<button class='btn btn-primary w-100 mt-2' id='save-properties'>Guardar</button>`;
+            $('#properties-panel .modal-body').html(html);
+        }
+
+        // Guardar propiedades editadas
+        function guardarPropiedadesWidget() {
+            const $selected = $('.elementor-widget.selected');
+            if ($selected.length === 0) return;
+            const sidx = $selected.data('sidx');
+            const cidx = $selected.data('cidx');
+            const widx = $selected.data('widx');
+            let widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
+            if (!widget) {
+                Swal.fire('Error', 'No se pudo encontrar el widget para guardar los cambios.', 'error');
+                return;
+            }
+            widget.label = $('#prop-label').val();
+            widget.id = $('#prop-id').val();
+            widget.name = $('#prop-name').val();
+            widget.hidden = $('#prop-hidden').is(':checked');
+            widget.disabled = $('#prop-disabled').is(':checked');
+            if(widget.type === 'select' || widget.type === 'radio') {
+                widget.options = ($('#prop-options').val() || '').split('\n').map(opt => opt.trim()).filter(opt => opt);
+            }
+        }
     </script>
 </body>
 </html>
