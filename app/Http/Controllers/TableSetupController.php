@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use App\Models\Form;
 use App\Models\FormField;
+use App\Services\TableCreatorService;
 
 class TableSetupController extends Controller
 {
@@ -59,41 +60,10 @@ class TableSetupController extends Controller
             if (Schema::hasTable($table)) {
                 return redirect()->back()->with('error', 'La tabla ya existe en la base de datos.');
             }
-            // 1. Crear tabla física
-            Schema::create($table, function (Blueprint $tableBlueprint) use ($fields) {
-                $tableBlueprint->id();
-                foreach ($fields as $field) {
-                    $type = $field['type'];
-                    $name = $field['name'];
-                    $required = isset($field['required']);
-                    switch ($type) {
-                        case 'string':
-                            $col = $tableBlueprint->string($name);
-                            break;
-                        case 'integer':
-                            $col = $tableBlueprint->integer($name);
-                            break;
-                        case 'boolean':
-                            $col = $tableBlueprint->boolean($name);
-                            break;
-                        case 'text':
-                            $col = $tableBlueprint->text($name);
-                            break;
-                        case 'date':
-                            $col = $tableBlueprint->date($name);
-                            break;
-                        default:
-                            $col = $tableBlueprint->string($name);
-                    }
-                    if ($required) {
-                        $col->nullable(false);
-                    } else {
-                        $col->nullable();
-                    }
-                }
-                $tableBlueprint->timestamps();
-            });
-            // 2. Guardar definición lógica (forms y form_fields)
+            // Usar el nuevo servicio para crear la tabla física avanzada
+            $service = new TableCreatorService();
+            $service->createTable($table, $fields);
+            // Guardar definición lógica (forms y form_fields)
             $form = Form::create([
                 'name' => $table, // Por ahora igual al nombre de la tabla
                 'table_name' => $table,
@@ -102,10 +72,11 @@ class TableSetupController extends Controller
                 FormField::create([
                     'form_id' => $form->id,
                     'name' => $field['name'],
-                    'label' => $field['name'], // Por ahora igual al nombre
+                    'label' => $field['label'] ?? $field['name'],
                     'type' => $field['type'],
-                    'required' => isset($field['required']),
+                    'required' => !empty($field['required']),
                     'order' => $i,
+                    'extra' => json_encode($field),
                 ]);
             }
             Session::forget('table_setup');

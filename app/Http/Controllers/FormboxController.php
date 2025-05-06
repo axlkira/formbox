@@ -31,6 +31,20 @@ class FormboxController extends Controller
         ]);
     }
 
+    // Descargar un formulario JSON guardado
+    public function downloadJson($filename)
+    {
+        $dir = storage_path('app/forms');
+        $safe = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($filename));
+        $path = $dir . '/' . $safe;
+        if (!file_exists($path)) {
+            abort(404, 'Archivo no encontrado.');
+        }
+        return response()->download($path, $safe, [
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
     // Guardar formulario desde builder (AJAX)
     public function save(Request $request)
     {
@@ -46,7 +60,141 @@ class FormboxController extends Controller
             mkdir($path, 0777, true);
         }
         file_put_contents($path . '/' . $filename, $sections);
-        return response()->json(['message' => 'Formulario guardado correctamente.', 'file' => $filename], 200);
+
+        // --- Guardar también en la base de datos ---
+        $sectionsArr = json_decode($sections, true);
+        if (!$sectionsArr || !is_array($sectionsArr)) {
+            return response()->json(['message' => 'Estructura de formulario inválida.'], 400);
+        }
+        // Determinar table_name único (puedes ajustar esta lógica si hay panel para definirlo)
+        $tableName = preg_replace('/[^a-zA-Z0-9_]/', '_', strtolower($name));
+        // Buscar o crear formulario
+        $form = \App\Models\Form::updateOrCreate(
+            [ 'table_name' => $tableName ],
+            [
+                'name' => $name,
+                'description' => $request->input('description'),
+                'json_file' => $filename,
+                'user_id' => auth()->id() ?? null,
+                'version' => null
+            ]
+        );
+        // Procesar campos (aplanar secciones y columnas)
+        $fields = [];
+        $order = 0;
+        foreach ($sectionsArr as $section) {
+            if (!isset($section['columns']) || !is_array($section['columns'])) continue;
+            foreach ($section['columns'] as $col) {
+                if (!isset($col['widgets']) || !is_array($col['widgets'])) continue;
+                foreach ($col['widgets'] as $widget) {
+                    $fields[] = [
+                        'form_id' => $form->id,
+                        'name' => $widget['name'] ?? ('field_' . $order),
+                        'label' => $widget['label'] ?? ('Campo ' . ($order+1)),
+                        'type' => $widget['type'] ?? 'text',
+                        'options' => isset($widget['options']) ? json_encode($widget['options']) : null,
+                        'order' => $order,
+                        'required' => !empty($widget['required']),
+                        'extra' => isset($widget['extra']) ? json_encode($widget['extra']) : null
+                    ];
+                    $order++;
+                }
+            }
+        }
+        // Sincronizar campos: borrar los viejos y crear los nuevos
+        $form->fields()->delete();
+        foreach ($fields as $f) {
+            \App\Models\FormField::create($f);
+        }
+        // --- Fin guardado en base de datos ---
+        return response()->json(['message' => 'Formulario guardado correctamente.', 'file' => $filename, 'form_id' => $form->id], 200);
+    }
+
+    // Listar archivos JSON de formularios guardados
+    public function listJson()
+    {
+        $dir = storage_path('app/forms');
+        if (!file_exists($dir)) {
+            return response()->json([]);
+        }
+        $files = array_values(array_filter(scandir($dir), function($f) {
+            return preg_match('/\.json$/', $f);
+        }));
+        return response()->json($files);
+    }
+
+    // Cargar un formulario JSON guardado
+    public function loadJson($filename)
+    {
+        $dir = storage_path('app/forms');
+        // Permitir puntos en el nombre del archivo (para extensiones .json)
+        $safe = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($filename));
+        $path = $dir . '/' . $safe;
+        if (!file_exists($path)) {
+            return response()->json(['message' => 'Archivo no encontrado.'], 404);
+        }
+        $json = file_get_contents($path);
+        return response()->json(['json' => $json]);
+    }
+
+    // Eliminar un formulario JSON guardado
+    public function deleteJson($filename)
+    {
+        $dir = storage_path('app/forms');
+        $safe = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($filename));
+        $path = $dir . '/' . $safe;
+        if (!file_exists($path)) {
+            return response()->json(['message' => 'Archivo no encontrado.'], 404);
+        }
+        unlink($path);
+        return response()->json(['message' => 'Archivo eliminado correctamente.']);
+    }
+
+    // Renombrar un formulario JSON guardado
+    public function renameJson(Request $request, $filename)
+    {
+        $dir = storage_path('app/forms');
+        $safeOld = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($filename));
+        $pathOld = $dir . '/' . $safeOld;
+        $newName = $request->input('new_name');
+        if (!$newName) {
+            return response()->json(['message' => 'Nuevo nombre requerido.'], 400);
+        }
+        // Solo permitir nombres válidos y con .json
+        $safeNew = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($newName));
+        if (!str_ends_with($safeNew, '.json')) {
+            $safeNew .= '.json';
+        }
+        $pathNew = $dir . '/' . $safeNew;
+        if (!file_exists($pathOld)) {
+            return response()->json(['message' => 'Archivo original no encontrado.'], 404);
+        }
+        if (file_exists($pathNew)) {
+            return response()->json(['message' => 'Ya existe un archivo con ese nombre.'], 409);
+        }
+        rename($pathOld, $pathNew);
+        return response()->json(['message' => 'Archivo renombrado correctamente.', 'new_name' => $safeNew]);
+    }
+
+    // Importar un formulario JSON subido
+    public function importJson(Request $request)
+    {
+        if (!$request->hasFile('json_file')) {
+            return response()->json(['message' => 'No se envió archivo.'], 400);
+        }
+        $file = $request->file('json_file');
+        if ($file->getClientOriginalExtension() !== 'json') {
+            return response()->json(['message' => 'Solo se permiten archivos .json.'], 400);
+        }
+        $dir = storage_path('app/forms');
+        $name = preg_replace('/[^a-zA-Z0-9_.-]/', '_', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $finalName = $name . '.json';
+        $path = $dir . '/' . $finalName;
+        if (file_exists($path)) {
+            return response()->json(['message' => 'Ya existe un formulario con ese nombre.'], 409);
+        }
+        $file->move($dir, $finalName);
+        return response()->json(['message' => 'Formulario importado correctamente.', 'name' => $finalName]);
     }
 
     // Renderiza el formulario como Blade

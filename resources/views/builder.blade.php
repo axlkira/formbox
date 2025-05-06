@@ -207,6 +207,7 @@
                 <button class="btn btn-outline-success" title="Exportar ZIP"><i class="bi bi-file-earmark-zip"></i></button>
                 <button class="btn btn-outline-warning" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
                 <button class="btn btn-outline-info" title="Descargar .blade.php" id="btn-download-blade"><i class="bi bi-filetype-php"></i></button>
+                <button class="btn btn-outline-dark" title="Cargar formulario" id="btn-load"><i class="bi bi-folder-plus"></i></button>
             </div>
         </div>
     </nav>
@@ -688,7 +689,181 @@
             });
         });
 
-        $('#btn-download-html').closest('li,div,button').remove();
+        // Mostrar lista de formularios guardados y cargar o eliminar uno al canvas
+        function showLoadFormModal() {
+            $.get(getFormboxUrl('/formbox/list-json'), function(files) {
+                let html = '<select id="select-json-form" class="form-select mb-3">';
+                if (files.length === 0) {
+                    html += '<option value="">No hay formularios guardados</option>';
+                } else {
+                    html += '<option value="">Selecciona un formulario...</option>';
+                    files.forEach(f => { html += `<option value="${f}">${f}</option>`; });
+                }
+                html += '</select>';
+                html += '<button id="btn-delete-json" class="btn btn-danger w-100 mt-2" type="button">Eliminar seleccionado</button>';
+                html += '<button id="btn-rename-json" class="btn btn-secondary w-100 mt-2" type="button">Renombrar seleccionado</button>';
+                html += '<button id="btn-download-json" class="btn btn-success w-100 mt-2" type="button">Exportar seleccionado</button>';
+                html += '<button id="btn-import-json" class="btn btn-info w-100 mt-2" type="button">Importar formulario</button>';
+                Swal.fire({
+                    title: 'Cargar formulario',
+                    html: html,
+                    showCancelButton: true,
+                    confirmButtonText: 'Cargar',
+                    cancelButtonText: 'Cancelar',
+                    preConfirm: () => {
+                        const fname = $('#select-json-form').val();
+                        if (!fname) return Swal.showValidationMessage('Selecciona un formulario');
+                        return fname;
+                    }
+                }).then(result => {
+                    if (result.isConfirmed && result.value) {
+                        // Usar la función getFormboxUrl para compatibilidad XAMPP/public
+                        $.get(getFormboxUrl('/formbox/load-json/' + result.value), function(resp) {
+                            if (resp.json) {
+                                try {
+                                    window.sections = JSON.parse(resp.json);
+                                    renderSections();
+                                    Swal.fire('Cargado', 'Formulario cargado correctamente.', 'success');
+                                } catch (e) {
+                                    Swal.fire('Error', 'El archivo no es un JSON válido.', 'error');
+                                }
+                            } else {
+                                Swal.fire('Error', 'No se pudo cargar el formulario.', 'error');
+                            }
+                        }).fail(function() {
+                            Swal.fire('Error', 'No se pudo cargar el formulario.', 'error');
+                        });
+                    }
+                });
+                // Eliminar formulario seleccionado
+                $(document).off('click', '#btn-delete-json').on('click', '#btn-delete-json', function() {
+                    const fname = $('#select-json-form').val();
+                    if (!fname) {
+                        Swal.fire('Error', 'Selecciona un formulario para eliminar.', 'error');
+                        return;
+                    }
+                    Swal.fire({
+                        title: '¿Eliminar formulario?',
+                        text: fname,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then(res => {
+                        if (res.isConfirmed) {
+                            $.ajax({
+                                url: getFormboxUrl('/formbox/delete-json/' + fname),
+                                type: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function() {
+                                    Swal.fire('Eliminado', 'Formulario eliminado.', 'success');
+                                    showLoadFormModal(); // refresca lista
+                                },
+                                error: function() {
+                                    Swal.fire('Error', 'No se pudo eliminar.', 'error');
+                                }
+                            });
+                        }
+                    });
+                });
+                // Renombrar formulario seleccionado
+                $(document).off('click', '#btn-rename-json').on('click', '#btn-rename-json', function() {
+                    const fname = $('#select-json-form').val();
+                    if (!fname) {
+                        Swal.fire('Error', 'Selecciona un formulario para renombrar.', 'error');
+                        return;
+                    }
+                    Swal.fire({
+                        title: 'Nuevo nombre',
+                        input: 'text',
+                        inputLabel: 'Nombre nuevo (sin .json)',
+                        inputValue: fname.replace(/\.json$/, ''),
+                        showCancelButton: true,
+                        confirmButtonText: 'Renombrar',
+                        cancelButtonText: 'Cancelar',
+                        preConfirm: (val) => {
+                            if (!val) return Swal.showValidationMessage('Debes ingresar un nombre');
+                            if (!/^[a-zA-Z0-9_.-]+$/.test(val)) return Swal.showValidationMessage('Solo letras, números, guion, guion bajo y punto.');
+                            return val;
+                        }
+                    }).then(res => {
+                        if (res.isConfirmed && res.value) {
+                            $.post(getFormboxUrl('/formbox/rename-json/' + fname), {
+                                new_name: res.value + '.json',
+                                _token: $('meta[name="csrf-token"]').attr('content')
+                            }, function(data) {
+                                Swal.fire('Renombrado', 'Formulario renombrado.', 'success');
+                                showLoadFormModal();
+                            }).fail(function(xhr) {
+                                let msg = 'No se pudo renombrar.';
+                                if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                Swal.fire('Error', msg, 'error');
+                            });
+                        }
+                    });
+                });
+                // Exportar formulario seleccionado
+                $(document).off('click', '#btn-download-json').on('click', '#btn-download-json', function() {
+                    const fname = $('#select-json-form').val();
+                    if (!fname) {
+                        Swal.fire('Error', 'Selecciona un formulario para exportar.', 'error');
+                        return;
+                    }
+                    window.open(getFormboxUrl('/formbox/download-json/' + fname), '_blank');
+                });
+                // Importar formulario
+                $(document).off('click', '#btn-import-json').on('click', '#btn-import-json', function() {
+                    Swal.fire({
+                        title: 'Importar formulario',
+                        html: '<input type="file" id="import-json-file" accept="application/json,.json" class="form-control" />',
+                        showCancelButton: true,
+                        confirmButtonText: 'Importar',
+                        cancelButtonText: 'Cancelar',
+                        preConfirm: () => {
+                            const file = $('#import-json-file')[0].files[0];
+                            if (!file) return Swal.showValidationMessage('Selecciona un archivo JSON');
+                            if (!file.name.match(/\.json$/i)) return Swal.showValidationMessage('El archivo debe ser .json');
+                            return file;
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            const file = $('#import-json-file')[0].files[0];
+                            const formData = new FormData();
+                            formData.append('json_file', file);
+                            formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+                            $.ajax({
+                                url: getFormboxUrl('/formbox/import-json'),
+                                type: 'POST',
+                                data: formData,
+                                processData: false,
+                                contentType: false,
+                                success: function(resp) {
+                                    Swal.fire('Importado', 'Formulario importado correctamente.', 'success');
+                                    showLoadFormModal();
+                                },
+                                error: function(xhr) {
+                                    let msg = 'No se pudo importar.';
+                                    if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                    Swal.fire('Error', msg, 'error');
+                                }
+                            });
+                        }
+                    });
+                });
+                // Habilitar/deshabilitar botones según selección
+                function toggleFormActionButtons() {
+                    const hasSelection = $('#select-json-form').val();
+                    $('#btn-delete-json, #btn-rename-json, #btn-download-json').prop('disabled', !hasSelection);
+                }
+                $(document).off('change', '#select-json-form').on('change', '#select-json-form', toggleFormActionButtons);
+                setTimeout(toggleFormActionButtons, 100); // Inicial
+            });
+        }
+
+        // Botón para abrir el modal de carga (puedes ubicarlo donde gustes)
+        $('#btn-load').on('click', showLoadFormModal);
     </script>
 </body>
 </html>

@@ -42,8 +42,20 @@ Route::post('/importar-tabla', [ImportTableController::class, 'import'])->name('
 Route::post('/formbox/download-blade', [FormboxController::class, 'downloadBlade']);
 // Descarga HTML generado
 Route::post('/formbox/download-html', [FormboxController::class, 'downloadHtml']);
+// Descargar (exportar) formulario guardado (descarga directa)
+Route::get('/formbox/download-json/{filename}', [App\Http\Controllers\FormboxController::class, 'downloadJson'])->name('formbox.download-json');
 // Guardar formulario desde builder (AJAX)
 Route::post('/formbox/save', [App\Http\Controllers\FormboxController::class, 'save'])->name('formbox.save');
+// Listar formularios guardados (AJAX)
+Route::get('/formbox/list-json', [App\Http\Controllers\FormboxController::class, 'listJson'])->name('formbox.list-json');
+// Cargar formulario guardado (AJAX)
+Route::get('/formbox/load-json/{filename}', [App\Http\Controllers\FormboxController::class, 'loadJson'])->name('formbox.load-json');
+// Renombrar formulario guardado (AJAX)
+Route::post('/formbox/rename-json/{filename}', [App\Http\Controllers\FormboxController::class, 'renameJson'])->name('formbox.rename-json');
+// Eliminar formulario guardado (AJAX)
+Route::delete('/formbox/delete-json/{filename}', [App\Http\Controllers\FormboxController::class, 'deleteJson'])->name('formbox.delete-json');
+// Importar formulario guardado (AJAX, subida de archivo)
+Route::post('/formbox/import-json', [App\Http\Controllers\FormboxController::class, 'importJson'])->name('formbox.import-json');
 
 // CRUD dinámico para cualquier formulario generado
 Route::prefix('forms/{form}/records')->group(function () {
