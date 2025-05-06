@@ -31,6 +31,24 @@ class FormboxController extends Controller
         ]);
     }
 
+    // Guardar formulario desde builder (AJAX)
+    public function save(Request $request)
+    {
+        $name = $request->input('name');
+        $sections = $request->input('sections');
+        if (!$name || !$sections) {
+            return response()->json(['message' => 'Nombre y estructura del formulario requeridos.'], 400);
+        }
+        // Guardar como archivo temporal en storage/app/forms
+        $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name) . '_' . date('Ymd_His') . '.json';
+        $path = storage_path('app/forms');
+        if (!file_exists($path)) {
+            mkdir($path, 0777, true);
+        }
+        file_put_contents($path . '/' . $filename, $sections);
+        return response()->json(['message' => 'Formulario guardado correctamente.', 'file' => $filename], 200);
+    }
+
     // Renderiza el formulario como Blade
     private function generateBlade($sections)
     {
@@ -184,7 +202,7 @@ class FormboxController extends Controller
         $step = isset($widget['step']) ? $widget['step'] : '';
         $pattern = isset($widget['pattern']) ? $widget['pattern'] : '';
         $multiple = (isset($widget['multiple']) && $widget['multiple']) ? 'multiple' : '';
-        $size = isset($widget['size']) ? $widget['size'] : '';
+        $size = isset($widget['size']) && $widget['size'] !== null ? $widget['size'] : 1; // Asegurar que $size siempre tenga valor por defecto si no está definido
         $accept = isset($widget['accept']) ? $widget['accept'] : '';
         $value = isset($widget['value']) ? $widget['value'] : '';
         $inline = (isset($widget['inline']) && $widget['inline']);

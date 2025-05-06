@@ -6,6 +6,7 @@ use App\Http\Controllers\TableSetupController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\ImportTableController;
 use App\Http\Controllers\FormboxController;
+use App\Http\Controllers\DynamicCrudController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -41,6 +42,19 @@ Route::post('/importar-tabla', [ImportTableController::class, 'import'])->name('
 Route::post('/formbox/download-blade', [FormboxController::class, 'downloadBlade']);
 // Descarga HTML generado
 Route::post('/formbox/download-html', [FormboxController::class, 'downloadHtml']);
+// Guardar formulario desde builder (AJAX)
+Route::post('/formbox/save', [App\Http\Controllers\FormboxController::class, 'save'])->name('formbox.save');
+
+// CRUD dinámico para cualquier formulario generado
+Route::prefix('forms/{form}/records')->group(function () {
+    Route::get('/', [DynamicCrudController::class, 'index'])->name('dynamic-crud.index');
+    Route::get('/create', [DynamicCrudController::class, 'create'])->name('dynamic-crud.create');
+    Route::post('/', [DynamicCrudController::class, 'store'])->name('dynamic-crud.store');
+    Route::get('/{id}', [DynamicCrudController::class, 'show'])->name('dynamic-crud.show');
+    Route::get('/{id}/edit', [DynamicCrudController::class, 'edit'])->name('dynamic-crud.edit');
+    Route::put('/{id}', [DynamicCrudController::class, 'update'])->name('dynamic-crud.update');
+    Route::delete('/{id}', [DynamicCrudController::class, 'destroy'])->name('dynamic-crud.destroy');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

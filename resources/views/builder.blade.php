@@ -218,6 +218,7 @@
                 <span style="font-size:0.95rem; font-weight:500;">Agregar sección</span>
             </button>
             <button id="open-widget-modal" class="btn btn-outline-primary mb-3 w-100" title="Agregar campo"><i class="bi bi-plus-circle"></i></button>
+            <a href="/forms/{form}/records" class="btn btn-outline-dark w-100 mb-2"><i class="bi bi-card-list"></i> Formularios (CRUD)</a>
             <div class="sidebar-instructions mt-auto mb-3 px-2 text-center">
                 <i class="bi bi-info-circle"></i>
                 <ul class="list-unstyled small mt-2">
@@ -620,22 +621,46 @@
             return base + path;
         }
 
-        // Guardar formulario AJAX
+        // Guardar formulario AJAX con URL dinámica según entorno
         $('#btn-save').on('click', function(e) {
             e.preventDefault();
-            $.ajax({
-                url: '/formbox/save',
-                method: 'POST',
-                data: {
-                    name: prompt('Nombre del formulario:'),
-                    sections: JSON.stringify(window.sections),
-                    _token: $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(resp) {
-                    Swal.fire('Guardado', 'El formulario se guardó correctamente.', 'success');
-                },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo guardar el formulario.', 'error');
+            Swal.fire({
+                title: 'Guardar formulario',
+                input: 'text',
+                inputLabel: 'Nombre del formulario',
+                inputPlaceholder: 'Ingrese el nombre',
+                inputValue: '',
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: (name) => {
+                    if (!name) {
+                        Swal.showValidationMessage('Debes ingresar un nombre');
+                    }
+                    return name;
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    // Usar la función getFormboxUrl para compatibilidad XAMPP/public
+                    $.ajax({
+                        url: getFormboxUrl('/formbox/save'),
+                        method: 'POST',
+                        data: {
+                            name: result.value,
+                            sections: JSON.stringify(window.sections),
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(resp) {
+                            Swal.fire('Guardado', 'El formulario se guardó correctamente.', 'success');
+                        },
+                        error: function(xhr) {
+                            let msg = 'No se pudo guardar el formulario.';
+                            if(xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            }
+                            Swal.fire('Error', msg, 'error');
+                        }
+                    });
                 }
             });
         });
