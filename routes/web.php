@@ -5,6 +5,7 @@ use App\Http\Controllers\DbSetupController;
 use App\Http\Controllers\TableSetupController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\ImportTableController;
+use App\Http\Controllers\FormboxController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,6 +36,11 @@ Route::delete('/formularios/{id}', [FormController::class, 'destroy'])->name('fo
 
 Route::get('/importar-tabla', [ImportTableController::class, 'index'])->name('import.tables.index');
 Route::post('/importar-tabla', [ImportTableController::class, 'import'])->name('import.tables.import');
+
+// Descarga .blade.php generado
+Route::post('/formbox/download-blade', [FormboxController::class, 'downloadBlade']);
+// Descarga HTML generado
+Route::post('/formbox/download-html', [FormboxController::class, 'downloadHtml']);
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

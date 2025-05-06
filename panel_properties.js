@@ -26,6 +26,45 @@
                 html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-readonly' ${widget.readonly ? 'checked' : ''}><label class='form-check-label' for='prop-readonly'>Solo lectura</label></div>`;
                 html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
                 break;
+            case 'email':
+                html += `<div class='mb-2'><label class='form-label'>Placeholder</label><input type='text' class='form-control' id='prop-placeholder' value='${widget.placeholder||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Patrón (pattern)</label><input type='text' class='form-control' id='prop-pattern' value='${widget.pattern||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Máximo de caracteres</label><input type='number' class='form-control' id='prop-maxlength' min='1' value='${widget.maxlength||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
+            case 'password':
+                html += `<div class='mb-2'><label class='form-label'>Placeholder</label><input type='text' class='form-control' id='prop-placeholder' value='${widget.placeholder||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Mínimo de caracteres</label><input type='number' class='form-control' id='prop-minlength' min='1' value='${widget.minlength||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Máximo de caracteres</label><input type='number' class='form-control' id='prop-maxlength' min='1' value='${widget.maxlength||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
+            case 'number':
+                html += `<div class='mb-2'><label class='form-label'>Min</label><input type='number' class='form-control' id='prop-min' value='${widget.min||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Max</label><input type='number' class='form-control' id='prop-max' value='${widget.max||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Step</label><input type='number' class='form-control' id='prop-step' value='${widget.step||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
+            case 'date':
+                html += `<div class='mb-2'><label class='form-label'>Fecha mínima</label><input type='date' class='form-control' id='prop-min' value='${widget.min||''}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Fecha máxima</label><input type='date' class='form-control' id='prop-max' value='${widget.max||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
+            case 'file':
+                html += `<div class='mb-2'><label class='form-label'>Tipos permitidos (accept)</label><input type='text' class='form-control' id='prop-accept' placeholder='image/*,.pdf' value='${widget.accept||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-multiple' ${widget.multiple ? 'checked' : ''}><label class='form-check-label' for='prop-multiple'>Permitir múltiples archivos</label></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
+            case 'color':
+                html += `<div class='mb-2'><label class='form-label'>Color inicial</label><input type='color' class='form-control form-control-color' id='prop-value' value='${widget.value||'#000000'}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-disabled' ${widget.disabled ? 'checked' : ''}><label class='form-check-label' for='prop-disabled'>Deshabilitado</label></div>`;
+                break;
+            case 'range':
+                html += `<div class='mb-2'><label class='form-label'>Min</label><input type='number' class='form-control' id='prop-min' value='${widget.min||0}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Max</label><input type='number' class='form-control' id='prop-max' value='${widget.max||100}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Step</label><input type='number' class='form-control' id='prop-step' value='${widget.step||1}'></div>`;
+                html += `<div class='mb-2'><label class='form-label'>Valor inicial</label><input type='number' class='form-control' id='prop-value' value='${widget.value||''}'></div>`;
+                html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-required' ${widget.required ? 'checked' : ''}><label class='form-check-label' for='prop-required'>Requerido</label></div>`;
+                break;
             case 'radio':
                 html += `<div class='mb-2'><label class='form-label'>Opciones (una por línea)</label><textarea class='form-control' id='prop-options' rows='3'>${(widget.options||[]).join('\n')}</textarea></div>`;
                 html += `<div class='form-check mb-2'><input class='form-check-input' type='checkbox' id='prop-inline' ${widget.inline ? 'checked' : ''}><label class='form-check-label' for='prop-inline'>Mostrar en línea (horizontal)</label></div>`;
@@ -81,6 +120,45 @@
                 widget.maxlength = parseInt($('#prop-maxlength').val()) || '';
                 widget.pattern = $('#prop-pattern').val();
                 widget.readonly = $('#prop-readonly').is(':checked');
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'email':
+                widget.placeholder = $('#prop-placeholder').val();
+                widget.pattern = $('#prop-pattern').val();
+                widget.maxlength = parseInt($('#prop-maxlength').val()) || '';
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'password':
+                widget.placeholder = $('#prop-placeholder').val();
+                widget.minlength = parseInt($('#prop-minlength').val()) || '';
+                widget.maxlength = parseInt($('#prop-maxlength').val()) || '';
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'number':
+                widget.min = $('#prop-min').val();
+                widget.max = $('#prop-max').val();
+                widget.step = $('#prop-step').val();
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'date':
+                widget.min = $('#prop-min').val();
+                widget.max = $('#prop-max').val();
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'file':
+                widget.accept = $('#prop-accept').val();
+                widget.multiple = $('#prop-multiple').is(':checked');
+                widget.required = $('#prop-required').is(':checked');
+                break;
+            case 'color':
+                widget.value = $('#prop-value').val();
+                widget.disabled = $('#prop-disabled').is(':checked');
+                break;
+            case 'range':
+                widget.min = $('#prop-min').val();
+                widget.max = $('#prop-max').val();
+                widget.step = $('#prop-step').val();
+                widget.value = $('#prop-value').val();
                 widget.required = $('#prop-required').is(':checked');
                 break;
             case 'radio':

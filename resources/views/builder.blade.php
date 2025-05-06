@@ -202,10 +202,11 @@
         <div class="container-fluid py-2">
             <span class="navbar-brand fw-bold text-primary"><i class="bi bi-ui-checks-grid"></i> FormBox</span>
             <div class="d-flex gap-2">
-                <button class="btn btn-outline-primary" title="Guardar"><i class="bi bi-save"></i></button>
+                <button class="btn btn-outline-primary" title="Guardar" id="btn-save"><i class="bi bi-save"></i></button>
                 <button class="btn btn-outline-secondary" title="Vista previa" id="btn-preview"><i class="bi bi-eye"></i></button>
                 <button class="btn btn-outline-success" title="Exportar ZIP"><i class="bi bi-file-earmark-zip"></i></button>
                 <button class="btn btn-outline-warning" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="btn btn-outline-info" title="Descargar .blade.php" id="btn-download-blade"><i class="bi bi-filetype-php"></i></button>
             </div>
         </div>
     </nav>
@@ -487,6 +488,10 @@
                 const widx = $(this).data('widx');
                 let widget = window.sections[sidx]?.columns[cidx]?.widgets[widx];
                 if(widget) {
+                    // Parche temporal para error de panel_propertiesPanel no definido
+                    if (typeof renderWidgetPropertiesPanel === 'undefined') {
+                        window.renderWidgetPropertiesPanel = function() {};
+                    }
                     renderWidgetPropertiesPanel(widget, sidx, cidx, widx);
                     // Mostrar el modal correctamente usando Bootstrap
                     var modal = new bootstrap.Modal(document.getElementById('properties-panel'));
@@ -523,50 +528,50 @@
                             if(widget.label) html += `<label class='form-label fw-semibold mb-1'>${widget.label}</label>`;
                             switch(widget.type) {
                                 case 'text':
-                                    html += `<input type='text' class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''} />`;
+                                    html += `<input type='text' class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''} maxlength='${widget.maxlength||''}' pattern='${widget.pattern||''}' ${widget.readonly ? 'readonly' : ''} ${widget.required ? 'required' : ''}/>`;
                                     break;
                                 case 'textarea':
-                                    html += `<textarea class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''}></textarea>`;
+                                    html += `<textarea class='form-control' placeholder='${widget.placeholder||''}' rows='${widget.rows||3}' ${widget.disabled ? 'disabled' : ''} maxlength='${widget.maxlength||''}' ${widget.readonly ? 'readonly' : ''} ${widget.required ? 'required' : ''}></textarea>`;
+                                    break;
+                                case 'email':
+                                    html += `<input type='email' class='form-control' placeholder='${widget.placeholder||''}' ${widget.disabled ? 'disabled' : ''} maxlength='${widget.maxlength||''}' pattern='${widget.pattern||''}' ${widget.required ? 'required' : ''}/>`;
+                                    break;
+                                case 'password':
+                                    html += `<input type='password' class='form-control' placeholder='${widget.placeholder||''}' minlength='${widget.minlength||''}' maxlength='${widget.maxlength||''}' ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}/>`;
+                                    break;
+                                case 'number':
+                                    html += `<input type='number' class='form-control' min='${widget.min||''}' max='${widget.max||''}' step='${widget.step||''}' ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}/>`;
+                                    break;
+                                case 'date':
+                                    html += `<input type='date' class='form-control' min='${widget.min||''}' max='${widget.max||''}' ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}/>`;
+                                    break;
+                                case 'file':
+                                    html += `<input type='file' class='form-control' accept='${widget.accept||''}' ${widget.multiple ? 'multiple' : ''} ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}/>`;
+                                    break;
+                                case 'color':
+                                    html += `<input type='color' class='form-control form-control-color' value='${widget.value||'#000000'}' ${widget.disabled ? 'disabled' : ''}/>`;
+                                    break;
+                                case 'range':
+                                    html += `<input type='range' class='form-range' min='${widget.min||0}' max='${widget.max||100}' step='${widget.step||1}' value='${widget.value||''}' ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}/>`;
                                     break;
                                 case 'select':
-                                    html += `<select class='form-select' ${widget.disabled ? 'disabled' : ''}>`;
+                                    html += `<select class='form-select' ${widget.multiple ? 'multiple' : ''} size='${widget.size||1}' ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}>`;
                                     (widget.options||[]).forEach(opt => { html += `<option>${opt}</option>`; });
                                     html += '</select>';
                                     break;
                                 case 'checkbox':
-                                    html += `<div class='form-check'><input class='form-check-input' type='checkbox' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
+                                    html += `<div class='form-check${widget.inline ? ' form-check-inline' : ''}'><input class='form-check-input' type='checkbox' ${widget.checked ? 'checked' : ''} ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
                                     break;
                                 case 'switch':
-                                    html += `<div class='form-check form-switch'><input class='form-check-input' type='checkbox' role='switch' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
+                                    html += `<div class='form-check form-switch${widget.inline ? ' form-check-inline' : ''}'><input class='form-check-input' type='checkbox' role='switch' ${widget.checked ? 'checked' : ''} ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}><label class='form-check-label ms-2'>${widget.label||''}</label></div>`;
                                     break;
                                 case 'radio':
                                     (widget.options||[]).forEach(opt => {
-                                        html += `<div class='form-check'><input class='form-check-input' type='radio' name='${widget.name||''}' ${widget.disabled ? 'disabled' : ''}><label class='form-check-label ms-2'>${opt}</label></div>`;
+                                        html += `<div class='form-check${widget.inline ? ' form-check-inline' : ''}'><input class='form-check-input' type='radio' name='${widget.name||''}' value='${opt}' ${(widget.default == opt) ? 'checked' : ''} ${widget.disabled ? 'disabled' : ''} ${widget.required ? 'required' : ''}><label class='form-check-label ms-2'>${opt}</label></div>`;
                                     });
                                     break;
                                 case 'button':
                                     html += `<button class='btn btn-primary w-100' type='button' ${widget.disabled ? 'disabled' : ''}>${widget.label||'Botón'}</button>`;
-                                    break;
-                                case 'date':
-                                    html += `<input type='date' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'file':
-                                    html += `<input type='file' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'email':
-                                    html += `<input type='email' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'number':
-                                    html += `<input type='number' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'password':
-                                    html += `<input type='password' class='form-control' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'color':
-                                    html += `<input type='color' class='form-control form-control-color' ${widget.disabled ? 'disabled' : ''}/>`;
-                                    break;
-                                case 'range':
-                                    html += `<input type='range' class='form-range' ${widget.disabled ? 'disabled' : ''}/>`;
                                     break;
                                 case 'static':
                                     html += `<div class='form-text text-muted'>${widget.label||''}</div>`;
@@ -601,6 +606,64 @@
                 $body.append(`<button class="btn btn-outline-primary w-100 mb-2 btn-modal-widget" data-widget="${type}"><i class="bi ${window.widgetIcons[type] || 'bi-box'}"></i> ${window.widgetTypes[type]}</button>`);
             });
         }
+
+        // Utilidad para rutas dinámicas según entorno (XAMPP/public o artisan serve)
+        function getFormboxUrl(path) {
+            let base = '';
+            // Detecta XAMPP/public
+            if (window.location.pathname.includes('/public/')) {
+                base = '/formbox/public';
+            } else if (window.location.pathname.startsWith('/formbox/')) {
+                // Detecta artisan serve en subcarpeta
+                base = '/formbox';
+            }
+            return base + path;
+        }
+
+        // Guardar formulario AJAX
+        $('#btn-save').on('click', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/formbox/save',
+                method: 'POST',
+                data: {
+                    name: prompt('Nombre del formulario:'),
+                    sections: JSON.stringify(window.sections),
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(resp) {
+                    Swal.fire('Guardado', 'El formulario se guardó correctamente.', 'success');
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo guardar el formulario.', 'error');
+                }
+            });
+        });
+
+        // Descargar .blade.php
+        $('#btn-download-blade').on('click', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: getFormboxUrl('/formbox/download-blade'),
+                method: 'POST',
+                data: {
+                    sections: JSON.stringify(window.sections),
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                xhrFields: { responseType: 'blob' },
+                success: function(blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'formulario.blade.php';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+            });
+        });
+
+        $('#btn-download-html').closest('li,div,button').remove();
     </script>
 </body>
 </html>
